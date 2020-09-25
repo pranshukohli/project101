@@ -1,5 +1,5 @@
 // api/index.js
-var socket = new WebSocket("ws://2.tcp.ngrok.io:16105/ws");
+var socket = new WebSocket("ws://0.tcp.ngrok.io:11087/ws");
 
 let connect = () => {
   console.log("Attempting Connection...");
