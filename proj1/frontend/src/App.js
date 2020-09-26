@@ -18,7 +18,7 @@ class App extends React.Component {
     this.setState({soe: e.target.value});
   }
 
-  componentDidMount() {
+  fetchMenu = () => {
     fetch("/menu")
 //      .then(res => res.text())          // convert to plain text
 //      .then(text => console.log(text)) 
@@ -41,31 +41,13 @@ class App extends React.Component {
         }
       )
   }
-
+  componentDidMount() {
+    this.fetchMenu();
+  }
 
   send = () => {
     sendMsg(this.state.soe);
-    fetch("/menu")
-//      .then(res => res.text())          // convert to plain text
-//      .then(text => console.log(text)) 
-      .then(res => res.json())
-      .then(
-        (result) => {
-         this.setState({
-            isLoaded: true,
-            items: result
-          });
-        },
-        // Note: it's important to handle errors here
-        // instead of a catch() block so that we don't swallow
-        // exceptions from actual bugs in components.
-        (error) => {
-          this.setState({
-            isLoaded: true,
-            error
-          });
-        }
-      )
+    this.fetchMenu();
   }
 
   render() {
