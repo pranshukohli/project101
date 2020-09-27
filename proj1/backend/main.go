@@ -13,6 +13,8 @@ import (
 
 )
 
+var ws_conn *websocket.Conn
+
 // We'll need to define an Upgrader
 // this will require a Read and Write buffer size
 var upgrader = websocket.Upgrader{
@@ -49,6 +51,7 @@ func reader(conn *websocket.Conn, a *App) {
             log.Println(err)
             return
         }
+      fmt.Printf(string(messageType))
     // print out that message for clarity
         fmt.Println(string(p))
 	msg := string(p)
@@ -63,6 +66,16 @@ func reader(conn *websocket.Conn, a *App) {
     }
 }
 
+func sendMsg(conn *websocket.Conn) {
+      msg := []byte("Let's start to talk something.")
+      err := conn.WriteMessage(websocket.TextMessage, msg)
+      fmt.Printf("ffq")
+      if err != nil {
+        return
+      }
+      fmt.Printf("ff")
+}
+
 // define our WebSocket endpoint
 func (a *App) serveWs(w http.ResponseWriter, r *http.Request) {
     fmt.Println(r.Host)
@@ -73,9 +86,11 @@ func (a *App) serveWs(w http.ResponseWriter, r *http.Request) {
     if err != nil {
         log.Println(err)
   }
+  ws_conn = ws
+  fmt.Printf("Client Connected")
   // listen indefinitely for new messages coming
   // through on our WebSocket connection
-    reader(ws, a)
+    reader(ws_conn, a)
 }
 func (a *App) Initialize(dbDriver string, dbURI string) {
   db, err := gorm.Open(dbDriver, dbURI)
@@ -183,8 +198,10 @@ func (a *App) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 func oneCallback(scope *gorm.Scope) {
     if !scope.HasError() {
 	fmt.Printf("jjjfjf")
+	sendMsg(ws_conn)
     }
     fmt.Printf("23")
+
 }
 
 

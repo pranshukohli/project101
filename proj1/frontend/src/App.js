@@ -49,6 +49,9 @@ class App extends React.Component {
     sendMsg(this.state.soe);
     this.fetchMenu();
   }
+  add = (dish_id) => {
+    console.log("Add it" + dish_id);
+  }
 
   render() {
     const { error, isLoaded, items} = this.state;
@@ -63,7 +66,10 @@ class App extends React.Component {
           <ul>
             {this.state.items.map(item => (
               <li key={item.dish_id}>
-                <p>{item.name}</p> {item.description}
+                <p>
+		    {item.name}&nbsp;&nbsp;&nbsp; 
+	            <button onClick={() => this.add(item.dish_id)}>+</button>
+		</p> {item.description}
               </li>
             ))}
           </ul>
