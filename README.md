@@ -3,6 +3,6 @@
 https://lucky-frog-93.loca.lt/
 
 React hosted at:-
-https://motukidukan.loca.lt
+http://motukidukan.loca.lt
 (Click continue to proceed)
 
