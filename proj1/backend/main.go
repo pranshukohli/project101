@@ -10,24 +10,10 @@ import (
   _ "github.com/jinzhu/gorm/dialects/sqlite"
   "github.com/gorilla/mux"
   "github.com/gorilla/websocket"
-
+  "github.com/pranshukohli/project101/tree/master/proj1/backend/pkg/websocket"
 )
 
 var ws_conn *websocket.Conn
-
-// We'll need to define an Upgrader
-// this will require a Read and Write buffer size
-var upgrader = websocket.Upgrader{
-    ReadBufferSize:  1024,
-  WriteBufferSize: 1024,
-
-  // We'll need to check the origin of our connection
-  // this will allow us to make requests from our React
-  // development server to here.
-  // For now, we'll do no checking and just allow any connection
-  CheckOrigin: func(r *http.Request) bool { return true },
-}
-
 
 type Menu struct {
   ID int64 `json:"dish_id"`
@@ -40,74 +26,26 @@ type App struct {
   DB *gorm.DB
 }
 
-// define a reader which will listen for
-// new messages being sent to our WebSocket
-// endpoint
-func reader(conn *websocket.Conn, a *App) {
-    for {
-    // read in a message
-        messageType, p, err := conn.ReadMessage()
-        if err != nil {
-            log.Println(err)
-            return
-        }
-      fmt.Printf(string(messageType))
-    // print out that message for clarity
-        fmt.Println(string(p))
-	msg := string(p)
-	row1 := &Menu{Name: msg, Description: msg}
-        a.DB.Create(row1)
-
-        if err := conn.WriteMessage(messageType, p); err != nil {
-            log.Println(err)
-            return
-        }
-
-    }
-}
-
-func sendMsg(conn *websocket.Conn) {
-      msg := []byte("Let's start to talk something.")
-      err := conn.WriteMessage(websocket.TextMessage, msg)
-      fmt.Printf("ffq")
-      if err != nil {
-        return
-      }
-      fmt.Printf("ff")
-}
-
 // define our WebSocket endpoint
 func (a *App) serveWs(w http.ResponseWriter, r *http.Request) {
-    fmt.Println(r.Host)
-
-  // upgrade this connection to a WebSocket
-  // connection
-    ws, err := upgrader.Upgrade(w, r, nil)
+    fmt.Printf(r.Host)
+    ws, err := websocket.Upgrade(w, r, nil)
     if err != nil {
         log.Println(err)
-  }
-  ws_conn = ws
-  fmt.Printf("Client Connected")
-  // listen indefinitely for new messages coming
-  // through on our WebSocket connection
-    reader(ws_conn, a)
+    }
+    ws_conn = ws
+    fmt.Printf("Client Connected")
+    websocket.Reader(ws_conn, a)
 }
+
 func (a *App) Initialize(dbDriver string, dbURI string) {
   db, err := gorm.Open(dbDriver, dbURI)
   if err != nil {
     panic("failed to connect database")
   }
   a.DB = db
-
-  // Migrate the schema.
   a.DB.AutoMigrate(&Menu{})
 }
-/*
-func handler(w http.ResponseWriter, r *http.Request) {
-  w.WriteHeader(200)
-  w.Write([]byte("hello world"))
-}
-*/
 
 func (a *App) ListHandler(w http.ResponseWriter, r *http.Request) {
   var menus []Menu
