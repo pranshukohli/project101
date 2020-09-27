@@ -10,7 +10,7 @@ import (
   _ "github.com/jinzhu/gorm/dialects/sqlite"
   "github.com/gorilla/mux"
   "github.com/gorilla/websocket"
-  "github.com/pranshukohli/project101/tree/master/proj1/backend/pkg/websocket"
+  "github.com/pranshukohli/project101/proj1/backend/pkg/websocket"
 )
 
 var ws_conn *websocket.Conn
