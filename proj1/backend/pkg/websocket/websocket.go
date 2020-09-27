@@ -5,8 +5,9 @@ import (
     "io"
     "log"
     "net/http"
-
+    "github.com/pranshukohli/project101/proj1/backend/main"
     "github.com/gorilla/websocket"
+
 )
 
 var upgrader = websocket.Upgrader{
@@ -24,7 +25,7 @@ func Upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
     return ws, nil
 }
 
-func Reader(conn *websocket.Conn) {
+func Reader(conn *websocket.Conn, a *App) {
     for {
         messageType, p, err := conn.ReadMessage()
         if err != nil {
@@ -33,6 +34,9 @@ func Reader(conn *websocket.Conn) {
         }
 
         fmt.Println(string(p))
+        msg := string(p)
+	row1 := &Menu{Name: msg, Description: msg}
+        a.DB.Create(row1)
 
         if err := conn.WriteMessage(messageType, p); err != nil {
             log.Println(err)
@@ -63,4 +67,13 @@ func Writer(conn *websocket.Conn) {
             return
         }
     }
+}
+func SendMsg(conn *websocket.Conn) {
+      msg := []byte("Let's start to talk something.")
+      err := conn.WriteMessage(websocket.TextMessage, msg)
+      fmt.Printf("ffq")
+      if err != nil {
+        return
+      }
+      fmt.Printf("ff")
 }

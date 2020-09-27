@@ -9,11 +9,9 @@ import (
   "github.com/jinzhu/gorm"
   _ "github.com/jinzhu/gorm/dialects/sqlite"
   "github.com/gorilla/mux"
-  "github.com/gorilla/websocket"
   "github.com/pranshukohli/project101/proj1/backend/pkg/websocket"
 )
 
-var ws_conn *websocket.Conn
 
 type Menu struct {
   ID int64 `json:"dish_id"`
@@ -29,13 +27,13 @@ type App struct {
 // define our WebSocket endpoint
 func (a *App) serveWs(w http.ResponseWriter, r *http.Request) {
     fmt.Printf(r.Host)
-    ws, err := websocket.Upgrade(w, r, nil)
+    ws, err := websocket.Upgrade(w, r)
     if err != nil {
         log.Println(err)
     }
-    ws_conn = ws
     fmt.Printf("Client Connected")
-    websocket.Reader(ws_conn, a)
+    go websocket.Writer(ws)
+    websocket.Reader(ws, a)
 }
 
 func (a *App) Initialize(dbDriver string, dbURI string) {
@@ -136,7 +134,6 @@ func (a *App) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 func oneCallback(scope *gorm.Scope) {
     if !scope.HasError() {
 	fmt.Printf("jjjfjf")
-	sendMsg(ws_conn)
     }
     fmt.Printf("23")
 
