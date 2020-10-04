@@ -3,15 +3,17 @@ package main
 import (
   "fmt"
   "log"
+  "io"
   "net/url"
   "net/http"
   "encoding/json"
   "github.com/jinzhu/gorm"
   _ "github.com/jinzhu/gorm/dialects/sqlite"
   "github.com/gorilla/mux"
-  "github.com/pranshukohli/project101/proj1/backend/pkg/websocket"
+  "github.com/gorilla/websocket"
 )
 
+var web_conn *websocket.Conn
 
 type Menu struct {
   ID int64 `json:"dish_id"`
@@ -24,16 +26,85 @@ type App struct {
   DB *gorm.DB
 }
 
+var upgrader = websocket.Upgrader{
+    ReadBufferSize:  1024,
+    WriteBufferSize: 1024,
+    CheckOrigin: func(r *http.Request) bool { return true },
+}
+
+func upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
+    ws, err := upgrader.Upgrade(w, r, nil)
+    if err != nil {
+        log.Println(err)
+        return ws, err
+    }
+    return ws, nil
+}
+
+func reader(conn *websocket.Conn, a *App) {
+    for {
+        messageType, p, err := conn.ReadMessage()
+        if err != nil {
+            log.Println(err)
+            return
+        }
+
+        fmt.Println(string(p))
+        msg := string(p)
+	row1 := &Menu{Name: msg, Description: msg}
+        a.DB.Create(row1)
+
+        if err := conn.WriteMessage(messageType, p); err != nil {
+            log.Println(err)
+            return
+        }
+    }
+}
+
+func writer(conn *websocket.Conn) {
+    for {
+        fmt.Println("Sending")
+        messageType, r, err := conn.NextReader()
+        if err != nil {
+            fmt.Println(err)
+            return
+        }
+        w, err := conn.NextWriter(messageType)
+        if err != nil {
+            fmt.Println(err)
+            return
+        }
+        if _, err := io.Copy(w, r); err != nil {
+            fmt.Println(err)
+            return
+        }
+        if err := w.Close(); err != nil {
+            fmt.Println(err)
+            return
+        }
+    }
+}
+func sendMsg(conn *websocket.Conn) {
+      msg := []byte("Let's start to talk something.")
+      err := conn.WriteMessage(websocket.TextMessage, msg)
+      fmt.Printf("ffq")
+      if err != nil {
+        return
+      }
+      fmt.Printf("ff")
+}
+
 // define our WebSocket endpoint
 func (a *App) serveWs(w http.ResponseWriter, r *http.Request) {
     fmt.Printf(r.Host)
-    ws, err := websocket.Upgrade(w, r)
+    ws, err := upgrade(w, r)
     if err != nil {
         log.Println(err)
     }
+    web_conn = ws
     fmt.Printf("Client Connected")
-    go websocket.Writer(ws)
-    websocket.Reader(ws, a)
+    //writer(ws)
+    reader(ws, a)
 }
 
 func (a *App) Initialize(dbDriver string, dbURI string) {
@@ -133,7 +204,8 @@ func (a *App) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 func oneCallback(scope *gorm.Scope) {
     if !scope.HasError() {
-	fmt.Printf("jjjfjf")
+        fmt.Printf("jjjfjf")
+        sendMsg(web_conn)
     }
     fmt.Printf("23")
 

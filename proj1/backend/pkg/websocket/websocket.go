@@ -5,9 +5,8 @@ import (
     "io"
     "log"
     "net/http"
-    "github.com/pranshukohli/project101/proj1/backend/main"
-    "github.com/gorilla/websocket"
 
+    "github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{

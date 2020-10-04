@@ -64,7 +64,7 @@ class App extends React.Component {
         <div>
           <h1>StarManager</h1>
           <ul>
-            {this.state.items.map(item => (
+            {items.map(item => (
               <li key={item.dish_id}>
                 <p>
 		    {item.name}&nbsp;&nbsp;&nbsp; 
