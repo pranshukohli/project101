@@ -3,7 +3,6 @@ package main
 import (
   "fmt"
   "log"
-  "io"
   "net/url"
   "net/http"
   "encoding/json"
@@ -11,6 +10,8 @@ import (
   _ "github.com/jinzhu/gorm/dialects/sqlite"
   "github.com/gorilla/mux"
   "github.com/gorilla/websocket"
+//  "net/http/httputil"
+  "io/ioutil"
 )
 
 var web_conn *websocket.Conn
@@ -24,6 +25,82 @@ type Menu struct {
 }
 type App struct {
   DB *gorm.DB
+}
+
+type Client struct {
+    ID   string
+    Conn *websocket.Conn
+    Pool *Pool
+}
+
+type Message struct {
+    Type int    `json:"type"`
+    Body string `json:"body"`
+}
+
+type Pool struct {
+    Register   chan *Client
+    Unregister chan *Client
+    Clients    map[*Client]bool
+    Broadcast  chan Message
+}
+
+func newPool() *Pool {
+    return &Pool{
+        Register:   make(chan *Client),
+        Unregister: make(chan *Client),
+        Clients:    make(map[*Client]bool),
+        Broadcast:  make(chan Message),
+    }
+}
+
+func (pool *Pool) start() {
+    for {
+        select {
+        case client := <-pool.Register:
+            pool.Clients[client] = true
+            fmt.Println("Size of Connection Pool: ", len(pool.Clients))
+            for client, _ := range pool.Clients {
+                fmt.Println(client)
+                client.Conn.WriteJSON(Message{Type: 1, Body: "New User Joined..."})
+            }
+            break
+        case client := <-pool.Unregister:
+            delete(pool.Clients, client)
+            fmt.Println("Size of Connection Pool: ", len(pool.Clients))
+            for client, _ := range pool.Clients {
+                client.Conn.WriteJSON(Message{Type: 1, Body: "User Disconnected..."})
+            }
+            break
+        case message := <-pool.Broadcast:
+            fmt.Println("Sending message to all clients in Pool")
+            for client, _ := range pool.Clients {
+                if err := client.Conn.WriteJSON(message); err != nil {
+                    fmt.Println(err)
+                    return
+                }
+            }
+        }
+    }
+}
+
+func (c *Client) read(a *App) {
+    defer func() {
+        c.Pool.Unregister <- c
+        c.Conn.Close()
+    }()
+
+    for {
+        messageType, p, err := c.Conn.ReadMessage()
+        if err != nil {
+            log.Println(err)
+            return
+        }
+        message := Message{Type: messageType, Body: string(p)}
+//	msg := string(p)
+        c.Pool.Broadcast <- message
+        fmt.Printf("Message Received: %+v\n", message)
+    }
 }
 
 var upgrader = websocket.Upgrader{
@@ -41,70 +118,26 @@ func upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
     return ws, nil
 }
 
-func reader(conn *websocket.Conn, a *App) {
-    for {
-        messageType, p, err := conn.ReadMessage()
-        if err != nil {
-            log.Println(err)
-            return
-        }
-
-        fmt.Println(string(p))
-        msg := string(p)
-	row1 := &Menu{Name: msg, Description: msg}
-        a.DB.Create(row1)
-
-        if err := conn.WriteMessage(messageType, p); err != nil {
-            log.Println(err)
-            return
-        }
-    }
-}
-
-func writer(conn *websocket.Conn) {
-    for {
-        fmt.Println("Sending")
-        messageType, r, err := conn.NextReader()
-        if err != nil {
-            fmt.Println(err)
-            return
-        }
-        w, err := conn.NextWriter(messageType)
-        if err != nil {
-            fmt.Println(err)
-            return
-        }
-        if _, err := io.Copy(w, r); err != nil {
-            fmt.Println(err)
-            return
-        }
-        if err := w.Close(); err != nil {
-            fmt.Println(err)
-            return
-        }
-    }
-}
-func sendMsg(conn *websocket.Conn) {
-      msg := []byte("Let's start to talk something.")
-      err := conn.WriteMessage(websocket.TextMessage, msg)
-      fmt.Printf("ffq")
-      if err != nil {
-        return
-      }
-      fmt.Printf("ff")
-}
 
 // define our WebSocket endpoint
-func (a *App) serveWs(w http.ResponseWriter, r *http.Request) {
+func (a *App) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
     fmt.Printf(r.Host)
-    ws, err := upgrade(w, r)
+    conn, err := upgrade(w, r)
     if err != nil {
         log.Println(err)
     }
-    web_conn = ws
+    web_conn = conn
+
+    client := &Client{
+        Conn: conn,
+        Pool: pool,
+    }
+
+    pool.Register <- client
+    client.read(a)
+
+
     fmt.Printf("Client Connected")
-    //writer(ws)
-    reader(ws, a)
 }
 
 func (a *App) Initialize(dbDriver string, dbURI string) {
@@ -147,16 +180,17 @@ func (a *App) CreateHandler(w http.ResponseWriter, r *http.Request) {
   if err := r.ParseForm(); err != nil {
     panic("failed in ParseForm() call")
   }
+  fmt.Printf("sdsd\n")
+  body, err := ioutil.ReadAll(r.Body)
+  me := Menu{}
+  json.Unmarshal(body, &me)
+  fmt.Printf(string(me.Name))
 
   // Create a new menu from the request body.
-  menu := &Menu{
-    Name: r.PostFormValue("name"),
-    Description: r.PostFormValue("description"),
-  }
-  a.DB.Create(menu)
+  a.DB.Create(&me)
 
   // Form the URL of the newly created menu.
-  u, err := url.Parse(fmt.Sprintf("/menu/%s", menu.Name))
+  u, err := url.Parse(fmt.Sprintf("/menu/%s", me.Name))
   if err != nil {
     panic("failed to form new Menu URL")
   }
@@ -205,7 +239,6 @@ func (a *App) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 func oneCallback(scope *gorm.Scope) {
     if !scope.HasError() {
         fmt.Printf("jjjfjf")
-        sendMsg(web_conn)
     }
     fmt.Printf("23")
 
@@ -219,6 +252,8 @@ func main() {
   fmt.Printf("fff")
   a.DB.Callback().Create().Register("gorm:after_create", oneCallback)
 
+  pool := newPool()
+  go pool.start()
 
   r := mux.NewRouter()
   r.HandleFunc("/menu", a.ListHandler).Methods("GET")
@@ -229,7 +264,9 @@ func main() {
   r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         fmt.Fprintf(w, "Simple Server")
     })
-  r.HandleFunc("/ws", a.serveWs)
+  r.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+                         a.serveWs(pool, w, r)
+  })
   http.Handle("/", r)
   if err := http.ListenAndServe(":8080", nil); err != nil {
     panic(err)

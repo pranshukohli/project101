@@ -1,5 +1,6 @@
 import React from 'react';
 import './App.css';
+import axios from 'axios';
 import { connect, sendMsg } from "./api";
 
 class App extends React.Component {
@@ -9,30 +10,25 @@ class App extends React.Component {
       error: null,
       isLoaded: false,
       items: [],
-      soe: ''
+      soe: '',
+      menu: ''
     };
-    connect();
   }
 
   handleChange = (e) =>{
-    this.setState({soe: e.target.value});
+    this.setState({[e.target.name]: e.target.value});
   }
 
+
   fetchMenu = () => {
-    fetch("/menu")
-//      .then(res => res.text())          // convert to plain text
-//      .then(text => console.log(text)) 
-      .then(res => res.json())
+     axios.get('/menu')
       .then(
-        (result) => {
+        (repos) => {
          this.setState({
             isLoaded: true,
-            items: result
+            items: repos.data
           });
         },
-        // Note: it's important to handle errors here
-        // instead of a catch() block so that we don't swallow
-        // exceptions from actual bugs in components.
         (error) => {
           this.setState({
             isLoaded: true,
@@ -41,14 +37,24 @@ class App extends React.Component {
         }
       )
   }
+  addToMenu = () => {
+    axios.post('/menu', {
+      "name": this.state.menu,
+      "description": this.state.menu
+    })
+    .then(function (response) {
+       console.log("dd");
+       console.log(response);
+    })
+    sendMsg("update Menu"); 
+  }
   componentDidMount() {
+    connect((msg) => {
+    	this.fetchMenu();
+    });
     this.fetchMenu();
   }
 
-  send = () => {
-    sendMsg(this.state.soe);
-    this.fetchMenu();
-  }
   add = (dish_id) => {
     console.log("Add it" + dish_id);
   }
@@ -73,9 +79,8 @@ class App extends React.Component {
               </li>
             ))}
           </ul>
-	<p>SOE: {this.state.soe}</p>
-	<input type="text" value={this.state.soe} onChange={this.handleChange}/>
-	<button onClick={this.send}>Hit</button>
+	<input name="menu" type="text" value={this.state.menu} onChange={this.handleChange}/>
+	<button onClick={this.addToMenu}>Add</button>
         </div>
       );
     }

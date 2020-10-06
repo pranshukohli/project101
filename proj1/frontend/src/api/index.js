@@ -1,7 +1,7 @@
 // api/index.js
-var socket = new WebSocket("ws://0.tcp.ngrok.io:15332/ws");
+var socket = new WebSocket("ws://2.tcp.ngrok.io:16743/ws");
 
-let connect = () => {
+let connect = cb => {
   console.log("Attempting Connection...");
 
   socket.onopen = () => {
@@ -10,6 +10,7 @@ let connect = () => {
 
   socket.onmessage = msg => {
     console.log(msg);
+    cb(msg);
   };
 
   socket.onclose = event => {
