@@ -238,9 +238,9 @@ func (a *App) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 func oneCallback(scope *gorm.Scope) {
     if !scope.HasError() {
-        fmt.Printf("jjjfjf")
+        fmt.Printf("DB Update Error!!")
     }
-    fmt.Printf("23")
+    fmt.Printf("DB Updated")
 
 }
 
