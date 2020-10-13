@@ -1,7 +1,12 @@
 import React, { Component } from "react";
 import axios from 'axios';
-import { connect, sendMsg } from "../../api";
+import { sendMsg } from "../../api";
 import "./Menu.scss";
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
+import Container from 'react-bootstrap/Container';
+import Card from 'react-bootstrap/Card';
+import Button from 'react-bootstrap/Button';
 
 
 class Menu extends Component {
@@ -11,25 +16,22 @@ class Menu extends Component {
 	    error: null,
             isLoaded: false,
 	    items: [],
-            menu: ''
-	  }
+            itemName: '',
+            itemPrice: 0,
+            itemDescription: '',
+	  };
 	}
 
 	handleChange = (e) =>{
           this.setState({[e.target.name]: e.target.value});
         }
 
-        componentDidMount() {
-          connect((msg) => {
-    	    this.fetchMenu();
-          });
-        this.fetchMenu();
-        }
 
 	fetchMenu = () => {
 	  axios.get('/menu')
 	    .then(
 	    (repos) => {
+		    console.log(repos.data)
 	      this.setState({
 	        isLoaded: true,
 	        items: repos.data
@@ -44,14 +46,21 @@ class Menu extends Component {
 	   )
 	}
 
-	addToOrder = (dish_id) => {
-	    console.log("Add it" + dish_id);
+	addToOrder = (name, dish_id, price, quantity) => {
+	    var item =[ 
+		     name,
+		     dish_id,
+		     price,
+		     quantity
+	    ];
+	    this.props.parentCallback(item);
 	}
 
 	addToMenu = () => {
 	  axios.post('/menu', {
-	    "name": this.state.menu,
-	    "description": this.state.menu
+	    "name": this.state.itemName,
+	    "price": parseInt(this.state.itemPrice),
+	    "description": this.state.itemDescription
 	  })
 	  .then(function (response) {
 	     console.log(response);
@@ -66,22 +75,48 @@ class Menu extends Component {
           } else if (!isLoaded) {
             return <div className="menu">Loading Menu</div>;
           } else {
-
+	  let subset = items.slice(1);
 	  return(
             <div className="menu">
               <p>Menu</p>
-              <ul>
-                {items.map(item => (
-                <li key={item.dish_id}>
-                  <p>
-                    {item.name}&nbsp;&nbsp;&nbsp; 
-                    <button onClick={() => this.addToOrder(item.dish_id)}>+</button>
-                  </p> {item.description}
-                </li>
+              <Container className="menu-container">
+              <Row>
+                {subset.map(item => (
+                <Col md={4} sm={12} key={item.dish_id}>
+			<div className="card-menu">
+				<div className="card-menu-header">
+					<span className="card-top-left">
+						&#x20B9;{item.price}
+					</span>
+					<span className="float-right">
+						{item.name}
+					</span>
+				</div>
+				<div className="card-menu-body">
+					{item.description}
+				</div>
+				<div className="card-menu-footer">
+					<button className="button"
+						onClick={() => this.addToOrder(
+								item.name,
+								item.dish_id,
+								item.price, 1)
+						}>
+						+
+					</button>
+				</div>
+			</div>
+                </Col>
                 ))}
-              </ul>
-              <input name="menu" type="text" value={this.state.menu} onChange={this.handleChange}/>
-              <button onClick={this.addToMenu}>Add</button>
+              </Row>
+	      </Container>
+		  <p>
+              Name:<input name="itemName" type="text" value={this.state.itemName} onChange={this.handleChange}/>
+              </p>
+		  <p>Price:<input name="itemPrice" type="number" value={this.state.itemPrice} onChange={this.handleChange}/>
+              </p>
+		  <p>Description:<input name="itemDescription" type="text" value={this.state.itemDescription} onChange={this.handleChange}/>
+              </p><button onClick={this.addToMenu}>Add</button>
             </div>
           );
         }
