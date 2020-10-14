@@ -40,7 +40,7 @@ class CreateOrder extends Component {
 	render() {
 		return(
 			<div className="createorder">
-				<p>New Order #{this.state.orderNumber}</p>
+				<h3>New Order #{this.state.orderNumber}</h3>
 				<ul>
 				   {this.props.newOrderItem.map(item=>(  
 					<li key={item[1]}>
@@ -52,6 +52,7 @@ class CreateOrder extends Component {
 					</li>
 				   ))}
 				</ul>
+				<h3>Total: &#x20B9;{this.props.totalSum}</h3>
 				<button name="createOrder" onClick={this.createNewOrder}>
 					Create Order
 				</button>
