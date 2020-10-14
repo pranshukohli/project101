@@ -13,11 +13,25 @@ import (
   _ "github.com/jinzhu/gorm/dialects/sqlite"
   "github.com/gorilla/mux"
   "github.com/gorilla/websocket"
-//  "net/http/httputil"
   "io/ioutil"
 )
 
-var web_conn *websocket.Conn
+//database constants
+const DATABASE = "sqlite3"
+const DATABASE_NAME = "test.db"
+
+//rest path(RP) constants
+const RP_MENU = "/menu"
+const RP_BAKEMENU = "/bakemenu"
+
+//Tables with the ID
+var TABLEID = map[string]int {
+	"MENUS" : 1,
+	"ORDERS" : 2,
+	"ORDERSTATUS" : 3,
+	"CHEFS" : 4,
+}
+
 
 type Menu struct {
   ID int64 `json:"dish_id"`
@@ -158,7 +172,6 @@ func (a *App) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
     if err != nil {
         log.Println(err)
     }
-    web_conn = conn
 
     client := &Client{
         Conn: conn,
@@ -281,7 +294,7 @@ func (a *App) CreateHandler(tableId int, w http.ResponseWriter, r *http.Request)
 	json.Unmarshal(body, &me)
 	fmt.Printf(string(me.Name))
 	a.DB.Create(&me)
-	u, err := url.Parse(fmt.Sprintf("/menu/%s", me.Name))
+	u, err := url.Parse(fmt.Sprintf(RP_MENU + "/%s", me.Name))
 	if err != nil {
 		panic("failed to form new Menu URL")
 	}
@@ -306,7 +319,7 @@ func (a *App) CreateHandler(tableId int, w http.ResponseWriter, r *http.Request)
 //	or.OrderNumber = n
 	fmt.Printf(string(or.DishId))
 	a.DB.Create(&or)
-	u, err := url.Parse(fmt.Sprintf("/menu/%d", or.DishId))
+	u, err := url.Parse(fmt.Sprintf(RP_MENU + "/%d", or.DishId))
 	if err != nil {
 		panic("failed to form new Menu URL")
 	}
@@ -365,47 +378,79 @@ func dbUpdateCallback(scope *gorm.Scope) {
 
 
 func main() {
-  a := &App{}
-  a.Initialize("sqlite3", "test.db")
-  a.DB.Callback().Create().Register("gorm:after_create", dbUpdateCallback)
 
-  pool := newPool()
-  go pool.start()
+	//Initilise Database
+	a := &App{}
+	a.Initialize(DATABASE, DATABASE_NAME)
+	//Callback functioin when and if database gets a new row -- gorm
+	a.DB.Callback().Create().Register("gorm:after_create", dbUpdateCallback)
+	defer a.DB.Close()
 
-  r := mux.NewRouter()
-  r.HandleFunc("/menu", func(w http.ResponseWriter, r *http.Request) {
-	                    a.ListHandler(1, w, r)
-                        }).Methods("GET")
-  r.HandleFunc("/bakemenu", func(w http.ResponseWriter, r *http.Request) {
-	                    a.ListHandler(2, w, r)
-                        }).Methods("GET")
-  r.HandleFunc("/bakemenufull", func(w http.ResponseWriter, r *http.Request) {
-	                    a.ListHandler(3, w, r)
-                        }).Methods("GET")
-  r.HandleFunc("/menu/{dish_id:.+}", func(w http.ResponseWriter, r *http.Request) {
-	                    a.ViewHandler(1, w, r)
-                        }).Methods("GET")
-  r.HandleFunc("/bakemenu/{order_number:.+}", func(w http.ResponseWriter, r *http.Request) {
-	                    a.ViewHandler(2, w, r)
-                        }).Methods("GET")
-  r.HandleFunc("/menu", func(w http.ResponseWriter, r *http.Request) {
-	                    a.CreateHandler(1, w, r)
-                        }).Methods("POST")
-  r.HandleFunc("/order", func(w http.ResponseWriter, r *http.Request) {
-	                    a.CreateHandler(2, w, r)
-                        }).Methods("POST")
-  r.HandleFunc("/menu/{name:.+}", a.UpdateHandler).Methods("PUT")
-  r.HandleFunc("/menu/{name:.+}", a.DeleteHandler).Methods("DELETE")
-  r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        fmt.Fprintf(w, "Simple Server")
-    })
-  r.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-                         a.serveWs(pool, w, r)
-  })
-  http.Handle("/", r)
-  if err := http.ListenAndServe(":8080", nil); err != nil {
-    panic(err)
-  }
+	//Running a thread for multiple websocket connections
+	pool := newPool()
+	go pool.start()
 
-  defer a.DB.Close()
+
+	//For routing server for different paths -- rest approach
+	//Using mux for routing
+	r := mux.NewRouter()
+	r.HandleFunc(
+		RP_MENU,
+		func(w http.ResponseWriter, r *http.Request) {
+			a.ListHandler(TABLEID["MENUS"], w, r)
+		}).Methods("GET")
+	r.HandleFunc(
+		RP_BAKEMENU + "",
+		func(w http.ResponseWriter, r *http.Request) {
+			a.ListHandler(TABLEID["ORDERS"], w, r)
+		}).Methods("GET")
+	r.HandleFunc(
+		"/bakemenufull",
+		func(w http.ResponseWriter, r *http.Request) {
+			a.ListHandler(TABLEID["ORDERSTATUS"], w, r)
+		}).Methods("GET")
+	r.HandleFunc(
+		RP_MENU + "/{dish_id:.+}",
+		func(w http.ResponseWriter, r *http.Request) {
+			a.ViewHandler(TABLEID["MENUS"], w, r)
+		}).Methods("GET")
+	r.HandleFunc(
+		RP_BAKEMENU + "/{order_number:.+}",
+		func(w http.ResponseWriter, r *http.Request) {
+			a.ViewHandler(TABLEID["ORDERS"], w, r)
+		}).Methods("GET")
+	r.HandleFunc(
+		RP_MENU,
+		func(w http.ResponseWriter, r *http.Request) {
+			a.CreateHandler(1, w, r)
+		}).Methods("POST")
+	r.HandleFunc(
+		"/order",
+		func(w http.ResponseWriter, r *http.Request) {
+			a.CreateHandler(2, w, r)
+		}).Methods("POST")
+	r.HandleFunc(
+		RP_MENU + "/{name:.+}",
+		a.UpdateHandler).Methods("PUT")
+	r.HandleFunc(
+		RP_MENU + "/{name:.+}",
+		a.DeleteHandler).Methods("DELETE")
+	r.HandleFunc(
+		"/",
+		func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, "Simple Server")
+		})
+	r.HandleFunc(
+		"/ws",func(w http.ResponseWriter, r *http.Request) {
+			a.serveWs(pool, w, r)
+		})
+
+
+	//go http library to handle http requests
+	http.Handle("/", r)
+
+	//Starting backend server at 8080
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		panic(err)
+	}
 }
