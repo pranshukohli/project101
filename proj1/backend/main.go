@@ -28,8 +28,9 @@ const RP_BAKEMENU = "/bakemenu"
 var TABLEID = map[string]int {
 	"MENUS" : 1,
 	"ORDERS" : 2,
-	"ORDERSTATUS" : 3,
+	"ORDERSTATUSFULL" : 3,
 	"CHEFS" : 4,
+	"ORDERSTATUSBYORDER": 4,
 }
 
 
@@ -225,11 +226,66 @@ func (a *App) ListHandler(tableId int, w http.ResponseWriter, r *http.Request) {
             log.Fatal(err)
     }
     tableJSON, _ = json.Marshal(orders)
+  case 4:
+	var orders_list [][]*OrderStatus
+	order_numbers, err := a.DB.Table(
+					"orders",
+				).Select(
+					"distinct order_number",
+				).Rows()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer order_numbers.Close()
+
+	for order_numbers.Next() {
+		var orders []*OrderStatus
+		var order_number string
+		if err := order_numbers.Scan(
+					&order_number,
+				); err != nil {
+				log.Fatal(err)
+			}
+		rows, err := a.DB.Table(
+					"orders",
+				).Select(
+					"orders.id, orders.order_number, orders.status, orders.chef_id, orders.type, orders.payment_type, orders.quantity, menus.name, menus.description, menus.type, menus.id, menus.price",
+				).Joins(
+					"left join menus on menus.id = orders.dish_id",
+				).Where(
+					"order_number = ?",
+					order_number,
+				).Rows()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+		for rows.Next() {
+			o := new(OrderStatus)
+			if err := rows.Scan(
+					&o.OrderId, &o.OrderNumber,
+					&o.OrderStatus, &o.ChefId,
+					&o.OrderType, &o.OrderPaymentType,
+					&o.OrderQuantity, &o.DishName,
+					&o.DishDescription, &o.DishType,
+					&o.DishId, &o.DishPrice,
+				); err != nil {
+				log.Fatal(err)
+			}
+			orders = append(orders,o)
+		}
+		if err := rows.Err(); err != nil {
+			log.Fatal(err)
+		}
+		orders_list = append(orders_list,orders)
+	}
+	tableJSON, _ = json.Marshal(orders_list)
   }
 
   w.WriteHeader(200)
   w.Write([]byte(tableJSON))
 }
+
 
 func (a *App) ViewHandler(tableId int, w http.ResponseWriter, r *http.Request) {
 	var tableJSON []uint8
@@ -407,7 +463,12 @@ func main() {
 	r.HandleFunc(
 		"/bakemenufull",
 		func(w http.ResponseWriter, r *http.Request) {
-			a.ListHandler(TABLEID["ORDERSTATUS"], w, r)
+			a.ListHandler(TABLEID["ORDERSTATUSFULL"], w, r)
+		}).Methods("GET")
+	r.HandleFunc(
+		"/bakemenubyorder",
+		func(w http.ResponseWriter, r *http.Request) {
+			a.ListHandler(TABLEID["ORDERSTATUSBYORDER"], w, r)
 		}).Methods("GET")
 	r.HandleFunc(
 		RP_MENU + "/{dish_id:.+}",
