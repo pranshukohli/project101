@@ -55,19 +55,19 @@ type Order struct {
 }
 
 type OrderStatus struct {
-  DishId int64
-  DishPrice int64
-  DishName string
-  DishDescription string
-  DishType string
-  OrderId int64
-  OrderNumber int64
-  OrderQuantity int64
-  ChefId string
-  OrderType string
-  OrderStatus string
-  OrderPaymentType string
-  OrderNote string
+	DishId int64 `json: "dish_id"`
+  DishPrice int64 `json: "dish_price"`
+  DishName string `json: "dish_name"`
+  DishDescription string `json: "dish_description"`
+  DishType string `json: "dish_type"`
+  OrderId int64 `json: "order_id"`
+  OrderNumber int64 `json: "order_number"`
+  OrderQuantity int64 `json: "order_quantity"`
+  ChefId string `json: "chef_id"`
+  OrderType string `json: "order_type"`
+  OrderStatus string `json: "order_status"`
+  OrderPaymentType string `json: "order_payment_type"`
+  OrderNote string `json: "order_note"`
 }
 
 type App struct {
@@ -90,6 +90,11 @@ type Pool struct {
     Unregister chan *Client
     Clients    map[*Client]bool
     Broadcast  chan Message
+}
+
+type OrderByNumber struct {
+	OrderNumber int64 `json: "order_number"`
+	OrderList []*OrderStatus `json: "order_list"`
 }
 
 func newPool() *Pool {
@@ -228,19 +233,23 @@ func (a *App) ListHandler(tableId int, w http.ResponseWriter, r *http.Request) {
     tableJSON, _ = json.Marshal(orders)
   case 4:
 	var orders_list [][]*OrderStatus
+	var onl []*OrderByNumber
+	order_status := "in_progress"
 	order_numbers, err := a.DB.Table(
 					"orders",
 				).Select(
 					"distinct order_number",
+				).Where(
+					"status = ?",
+					order_status,
 				).Rows()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer order_numbers.Close()
-
 	for order_numbers.Next() {
 		var orders []*OrderStatus
-		var order_number string
+		var order_number int64
 		if err := order_numbers.Scan(
 					&order_number,
 				); err != nil {
@@ -253,8 +262,8 @@ func (a *App) ListHandler(tableId int, w http.ResponseWriter, r *http.Request) {
 				).Joins(
 					"left join menus on menus.id = orders.dish_id",
 				).Where(
-					"order_number = ?",
-					order_number,
+					"order_number = ? AND status = ?",
+					order_number,order_status,
 				).Rows()
 		if err != nil {
 			log.Fatal(err)
@@ -274,12 +283,19 @@ func (a *App) ListHandler(tableId int, w http.ResponseWriter, r *http.Request) {
 			}
 			orders = append(orders,o)
 		}
+
 		if err := rows.Err(); err != nil {
 			log.Fatal(err)
 		}
+		on :=new(OrderByNumber)
+		on.OrderNumber = order_number
+		on.OrderList = orders
+		onl = append(onl,on)
 		orders_list = append(orders_list,orders)
 	}
-	tableJSON, _ = json.Marshal(orders_list)
+	//tableJSON, _ = json.MarshalIndent(onl, "", "")
+	tableJSON, _ = json.Marshal(onl)
+
   }
 
   w.WriteHeader(200)
@@ -329,6 +345,69 @@ func (a *App) ViewHandler(tableId int, w http.ResponseWriter, r *http.Request) {
 			log.Fatal(err)
 		}
 		tableJSON, _ = json.Marshal(orders)
+  case 4:
+	var orders_list [][]*OrderStatus
+	var onl []*OrderByNumber
+	order_numbers, err := a.DB.Table(
+					"orders",
+				).Select(
+					"distinct order_number",
+				).Where(
+					"order_number = ?",
+					vars["order_number"],
+				).Rows()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer order_numbers.Close()
+	for order_numbers.Next() {
+		var orders []*OrderStatus
+		var order_number int64
+		if err := order_numbers.Scan(
+					&order_number,
+				); err != nil {
+				log.Fatal(err)
+			}
+		rows, err := a.DB.Table(
+					"orders",
+				).Select(
+					"orders.id, orders.order_number, orders.status, orders.chef_id, orders.type, orders.payment_type, orders.quantity, menus.name, menus.description, menus.type, menus.id, menus.price",
+				).Joins(
+					"left join menus on menus.id = orders.dish_id",
+				).Where(
+					"order_number = ?",
+					order_number,
+				).Rows()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+		for rows.Next() {
+			o := new(OrderStatus)
+			if err := rows.Scan(
+					&o.OrderId, &o.OrderNumber,
+					&o.OrderStatus, &o.ChefId,
+					&o.OrderType, &o.OrderPaymentType,
+					&o.OrderQuantity, &o.DishName,
+					&o.DishDescription, &o.DishType,
+					&o.DishId, &o.DishPrice,
+				); err != nil {
+				log.Fatal(err)
+			}
+			orders = append(orders,o)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Fatal(err)
+		}
+		on :=new(OrderByNumber)
+		on.OrderNumber = order_number
+		on.OrderList = orders
+		onl = append(onl,on)
+		orders_list = append(orders_list,orders)
+	}
+	//tableJSON, _ = json.MarshalIndent(onl, "", "")
+	tableJSON, _ = json.Marshal(onl)
 	  }
 
   w.WriteHeader(200)
@@ -478,7 +557,7 @@ func main() {
 	r.HandleFunc(
 		RP_BAKEMENU + "/{order_number:.+}",
 		func(w http.ResponseWriter, r *http.Request) {
-			a.ViewHandler(TABLEID["ORDERS"], w, r)
+			a.ViewHandler(TABLEID["ORDERSTATUSBYORDER"], w, r)
 		}).Methods("GET")
 	r.HandleFunc(
 		RP_MENU,
