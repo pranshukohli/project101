@@ -33,63 +33,62 @@ var TABLEID = map[string]int {
 	"ORDERSTATUSBYORDER": 4,
 }
 
-
 type Menu struct {
-  ID int64 `json:"dish_id"`
-  Name string `gorm:"not null" json:"name"`
-  Price int64 `gorm:"not null" json:"price"`
-  Description string `json:"description"`
-  Type string `gorm:"default:snacks" json:"type"`
+	ID		int64	`json:"dish_id"`
+	Name		string	`gorm:"not null" json:"name"`
+	Price		int64	`gorm:"not null" json:"price"`
+	Description	string	`json:"description"`
+	Type		string	`gorm:"default:snacks" json:"type"`
 }
 
 type Order struct {
-  ID int64 `json:"order_id"`
-  ChefId string `gorm:"not null" json:"chef_id"`
-  DishId int64 `gorm:"not null" json:"dish_id"`
-  OrderNumber int64 `gorm:"not null" json:"order_number"`
-  Type string `gorm:"default:dine_in" json:"type"`
-  Status string `gorm:"default:in_progress" json:status"`
-  PaymentType string `gorm:"default:cash" json:"payment_type"`
-  Note string `json:"note"`
-  Quantity int64 `gorm:"default:1" json:"quantity"`
+	ID		int64	`json:"order_id"`
+	ChefId		string	`gorm:"not null" json:"chef_id"`
+	DishId		int64	`gorm:"not null" json:"dish_id"`
+	OrderNumber	int64	`gorm:"not null" json:"order_number"`
+	Type		string	`gorm:"default:dine_in" json:"type"`
+	Status		string	`gorm:"default:in_progress" json:status"`
+	PaymentType	string	`gorm:"default:cash" json:"payment_type"`
+	Note		string	`json:"note"`
+	Quantity	int64	`gorm:"default:1" json:"quantity"`
 }
 
 type OrderStatus struct {
 	DishId int64 `json: "dish_id"`
-  DishPrice int64 `json: "dish_price"`
-  DishName string `json: "dish_name"`
-  DishDescription string `json: "dish_description"`
-  DishType string `json: "dish_type"`
-  OrderId int64 `json: "order_id"`
-  OrderNumber int64 `json: "order_number"`
-  OrderQuantity int64 `json: "order_quantity"`
-  ChefId string `json: "chef_id"`
-  OrderType string `json: "order_type"`
-  OrderStatus string `json: "order_status"`
-  OrderPaymentType string `json: "order_payment_type"`
-  OrderNote string `json: "order_note"`
+	DishPrice int64 `json: "dish_price"`
+	DishName string `json: "dish_name"`
+	DishDescription string `json: "dish_description"`
+	DishType string `json: "dish_type"`
+	OrderId int64 `json: "order_id"`
+	OrderNumber int64 `json: "order_number"`
+	OrderQuantity int64 `json: "order_quantity"`
+	ChefId string `json: "chef_id"`
+	OrderType string `json: "order_type"`
+	OrderStatus string `json: "order_status"`
+	OrderPaymentType string `json: "order_payment_type"`
+	OrderNote string `json: "order_note"`
 }
 
 type App struct {
-  DB *gorm.DB
+	DB *gorm.DB
 }
 
 type Client struct {
-    ID   string
-    Conn *websocket.Conn
-    Pool *Pool
+	ID   string
+	Conn *websocket.Conn
+	Pool *Pool
 }
 
 type Message struct {
-    Type int    `json:"type"`
-    Body string `json:"body"`
+	Type int `json:"type"`
+	Body string `json:"body"`
 }
 
 type Pool struct {
-    Register   chan *Client
-    Unregister chan *Client
-    Clients    map[*Client]bool
-    Broadcast  chan Message
+	Register   chan *Client
+	Unregister chan *Client
+	Clients    map[*Client]bool
+	Broadcast  chan Message
 }
 
 type OrderByNumber struct {
