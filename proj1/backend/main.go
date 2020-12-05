@@ -1,19 +1,19 @@
 package main
 
 import (
-  "fmt"
-  "log"
-  "time"
-  "strings"
-  "strconv"
-  "net/url"
-  "net/http"
-  "encoding/json"
-  "github.com/jinzhu/gorm"
-  _ "github.com/jinzhu/gorm/dialects/sqlite"
-  "github.com/gorilla/mux"
-  "github.com/gorilla/websocket"
-  "io/ioutil"
+	"fmt"
+	"log"
+	"time"
+	"strings"
+	"strconv"
+	"net/url"
+	"net/http"
+	"encoding/json"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
+	"io/ioutil"
 )
 
 //database constants
@@ -54,19 +54,19 @@ type Order struct {
 }
 
 type OrderStatus struct {
-	DishId int64 `json: "dish_id"`
-	DishPrice int64 `json: "dish_price"`
-	DishName string `json: "dish_name"`
-	DishDescription string `json: "dish_description"`
-	DishType string `json: "dish_type"`
-	OrderId int64 `json: "order_id"`
-	OrderNumber int64 `json: "order_number"`
-	OrderQuantity int64 `json: "order_quantity"`
-	ChefId string `json: "chef_id"`
-	OrderType string `json: "order_type"`
-	OrderStatus string `json: "order_status"`
-	OrderPaymentType string `json: "order_payment_type"`
-	OrderNote string `json: "order_note"`
+	DishId		int64	`json: "dish_id"`
+	DishPrice	int64	`json: "dish_price"`
+	DishName	string	`json: "dish_name"`
+	DishDescription	string	`json: "dish_description"`
+	DishType	string	`json: "dish_type"`
+	OrderId		int64	`json: "order_id"`
+	OrderNumber	int64	`json: "order_number"`
+	OrderQuantity	int64	`json: "order_quantity"`
+	ChefId		string	`json: "chef_id"`
+	OrderType	string	`json: "order_type"`
+	OrderStatus	string	`json: "order_status"`
+	OrderPaymentType string	`json: "order_payment_type"`
+	OrderNote	string	`json: "order_note"`
 }
 
 type App struct {
@@ -74,84 +74,98 @@ type App struct {
 }
 
 type Client struct {
-	ID   string
-	Conn *websocket.Conn
-	Pool *Pool
+	ID	string
+	Conn	*websocket.Conn
+	Pool	*Pool
 }
 
 type Message struct {
-	Type int `json:"type"`
-	Body string `json:"body"`
+	Type	int	`json:"type"`
+	Body	string	`json:"body"`
 }
 
 type Pool struct {
-	Register   chan *Client
-	Unregister chan *Client
-	Clients    map[*Client]bool
-	Broadcast  chan Message
+	Register	chan *Client
+	Unregister	chan *Client
+	Clients		map[*Client]bool
+	Broadcast	chan Message
 }
 
 type OrderByNumber struct {
-	OrderNumber int64 `json: "order_number"`
-	OrderList []*OrderStatus `json: "order_list"`
+	OrderNumber	int64	`json: "order_number"`
+	OrderList	[]*OrderStatus	`json: "order_list"`
 }
 
 func newPool() *Pool {
-    return &Pool{
-        Register:   make(chan *Client),
-        Unregister: make(chan *Client),
-        Clients:    make(map[*Client]bool),
-        Broadcast:  make(chan Message),
-    }
+	return &Pool{
+		Register:	make(chan *Client),
+		Unregister:	make(chan *Client),
+		Clients:	make(map[*Client]bool),
+		Broadcast:	make(chan Message),
+	}
 }
 
 func (pool *Pool) start() {
-    for {
-        select {
-        case client := <-pool.Register:
-            pool.Clients[client] = true
-            fmt.Println("Size of Connection Pool: ", len(pool.Clients))
-            for client, _ := range pool.Clients {
-                fmt.Println(client)
-                client.Conn.WriteJSON(Message{Type: 1, Body: "New User Joined..."})
-            }
-            break
-        case client := <-pool.Unregister:
-            delete(pool.Clients, client)
-            fmt.Println("Size of Connection Pool: ", len(pool.Clients))
-            for client, _ := range pool.Clients {
-                client.Conn.WriteJSON(Message{Type: 1, Body: "User Disconnected..."})
-            }
-            break
-        case message := <-pool.Broadcast:
-            fmt.Println("Sending message to all clients in Pool")
-            for client, _ := range pool.Clients {
-                if err := client.Conn.WriteJSON(message); err != nil {
-                    fmt.Println(err)
-                    return
-                }
-            }
-        }
-    }
+	for {
+		select {
+		case client := <-pool.Register:
+			pool.Clients[client] = true
+			fmt.Println(
+				"Size of Connection Pool: ",
+				len(pool.Clients))
+			for client, _ := range pool.Clients {
+				fmt.Println(client)
+				client.Conn.WriteJSON(
+					Message{
+						Type:	1,
+						Body:	"New User Joined...",
+					})
+			}
+			break
+		case client := <-pool.Unregister:
+			delete(pool.Clients, client)
+			fmt.Println(
+				"Size of Connection Pool: ",
+				len(pool.Clients))
+			for client, _ := range pool.Clients {
+				client.Conn.WriteJSON(
+					Message{
+						Type: 1,
+						Body: "User Disconnected...",
+					})
+			}
+			break
+		case message := <-pool.Broadcast:
+			fmt.Println("Sending message to all clients in Pool")
+			for client, _ := range pool.Clients {
+				if err := client.Conn.WriteJSON(message);
+				   err != nil {
+					fmt.Println(err)
+					return
+				}
+			}
+		}
+	}
 }
 
 func (c *Client) read(a *App) {
-    defer func() {
-        c.Pool.Unregister <- c
-        c.Conn.Close()
-    }()
-
-    for {
-        messageType, p, err := c.Conn.ReadMessage()
-        if err != nil {
-            log.Println(err)
-            return
-        }
-        message := Message{Type: messageType, Body: string(p)}
-//	msg := string(p)
-        c.Pool.Broadcast <- message
-        fmt.Printf("Message Received: %+v\n", message)
-    }
+	defer func() {
+		c.Pool.Unregister <- c
+		c.Conn.Close()
+	}()
+	for {
+		messageType, p, err := c.Conn.ReadMessage()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		message := Message{
+				Type: messageType,
+				Body: string(p)}
+		//msg := string(p)
+		c.Pool.Broadcast <- message
+		fmt.Printf("Message Received: %+v\n", message)
+	}
 }
 
 var upgrader = websocket.Upgrader{
@@ -315,9 +329,15 @@ func (a *App) ViewHandler(tableId int, w http.ResponseWriter, r *http.Request) {
 		rows, err := a.DB.Table(
 					"orders",
 				).Select(
-					"orders.id, orders.order_number, orders.status, orders.chef_id, orders.type, orders.payment_type, orders.quantity, menus.name, menus.description, menus.type, menus.id, menus.price",
+					"orders.id, orders.order_number, " +
+					"orders.status, orders.chef_id, " +
+					"orders.type, orders.payment_type, " +
+					"orders.quantity, menus.name, " +
+					"menus.description, menus.type, " +
+					"menus.id, menus.price",
 				).Joins(
-					"left join menus on menus.id = orders.dish_id",
+					"left join menus on " +
+					"menus.id = orders.dish_id",
 				).Where(
 					"order_number = ?",
 					vars["order_number"],
@@ -370,9 +390,15 @@ func (a *App) ViewHandler(tableId int, w http.ResponseWriter, r *http.Request) {
 		rows, err := a.DB.Table(
 					"orders",
 				).Select(
-					"orders.id, orders.order_number, orders.status, orders.chef_id, orders.type, orders.payment_type, orders.quantity, menus.name, menus.description, menus.type, menus.id, menus.price",
+					"orders.id, orders.order_number, " +
+					"orders.status, orders.chef_id, " +
+					"orders.type, orders.payment_type, " +
+					"orders.quantity, menus.name, " +
+					"menus.description, menus.type, " +
+					"menus.id, menus.price",
 				).Joins(
-					"left join menus on menus.id = orders.dish_id",
+					"left join menus on " +
+					"menus.id = orders.dish_id",
 				).Where(
 					"order_number = ?",
 					order_number,
