@@ -168,115 +168,75 @@ func (c *Client) read(a *App) {
 	}
 }
 
-var upgrader = websocket.Upgrader{
-    ReadBufferSize:  1024,
-    WriteBufferSize: 1024,
-    CheckOrigin: func(r *http.Request) bool { return true },
+var upgrader = websocket.Upgrader {
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {return true},
 }
 
 func upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
-    ws, err := upgrader.Upgrade(w, r, nil)
-    if err != nil {
-        log.Println(err)
-        return ws, err
-    }
-    return ws, nil
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return ws, err
+	}
+	return ws, nil
 }
-
 
 // define our WebSocket endpoint
 func (a *App) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
-    fmt.Printf(r.Host)
-    conn, err := upgrade(w, r)
-    if err != nil {
-        log.Println(err)
-    }
+	fmt.Printf(r.Host)
+	conn, err := upgrade(w, r)
 
-    client := &Client{
-        Conn: conn,
-        Pool: pool,
-    }
+	if err != nil {
+		log.Println(err)
+	}
 
-    pool.Register <- client
-    client.read(a)
+	client := &Client{
+		Conn: conn,
+		Pool: pool,
+	}
 
-
-    fmt.Printf("Client Connected")
+	pool.Register <- client
+	client.read(a)
+	fmt.Printf("Client Connected")
 }
 
 func (a *App) Initialize(dbDriver string, dbURI string) {
-  db, err := gorm.Open(dbDriver, dbURI)
-  if err != nil {
-    panic("failed to connect database")
-  }
-  a.DB = db
-  a.DB.AutoMigrate(&Menu{})
-  a.DB.AutoMigrate(&Order{})
+	db, err := gorm.Open(dbDriver, dbURI)
+	if err != nil {
+		panic("failed to connect database")
+	}
+	a.DB = db
+	a.DB.AutoMigrate(&Menu{})
+	a.DB.AutoMigrate(&Order{})
 }
 
-func (a *App) ListHandler(tableId int, w http.ResponseWriter, r *http.Request) {
-
-  var tableJSON []uint8
-  switch tableId {
-  case 1:
-    var menus []Menu
-    a.DB.Find(&menus)
-    tableJSON, _ = json.Marshal(menus)
-  case 2:
-    var orders []Order
-    a.DB.Find(&orders)
-    tableJSON, _ = json.Marshal(orders)
-  case 3:
-    var orders []*OrderStatus
-    rows, err := a.DB.Table("orders").Select("orders.id, orders.order_number, orders.status, orders.chef_id, orders.type, orders.payment_type, orders.quantity, menus.name, menus.description, menus.type, menus.id, menus.price").Joins("left join menus on menus.id = orders.dish_id").Rows()
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer rows.Close()
-    for rows.Next() {
-	    o := new(OrderStatus)
-            if err := rows.Scan(&o.OrderId, &o.OrderNumber, &o.OrderStatus, &o.ChefId, &o.OrderType, &o.OrderPaymentType, &o.OrderQuantity, &o.DishName, &o.DishDescription, &o.DishType, &o.DishId, &o.DishPrice); err != nil {
-                    log.Fatal(err)
-            }
-	    orders = append(orders,o)
-    }
-    if err := rows.Err(); err != nil {
-            log.Fatal(err)
-    }
-    tableJSON, _ = json.Marshal(orders)
-  case 4:
-	var orders_list [][]*OrderStatus
-	var onl []*OrderByNumber
-	order_status := "in_progress"
-	order_numbers, err := a.DB.Table(
-					"orders",
-				).Select(
-					"distinct order_number",
-				).Where(
-					"status = ?",
-					order_status,
-				).Rows()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer order_numbers.Close()
-	for order_numbers.Next() {
-		var orders []*OrderStatus
-		var order_number int64
-		if err := order_numbers.Scan(
-					&order_number,
-				); err != nil {
-				log.Fatal(err)
-			}
+func (a *App) ListHandler(
+		tableId int,
+		w http.ResponseWriter,
+		r *http.Request) {
+	var tableJSON []uint8
+	switch tableId {
+	case 1:	var menus []Menu
+		a.DB.Find(&menus)
+		tableJSON, _ = json.Marshal(menus)
+	case 2:	var orders []Order
+		a.DB.Find(&orders)
+		tableJSON, _ = json.Marshal(orders)
+	case 3:	var orders []*OrderStatus
 		rows, err := a.DB.Table(
 					"orders",
 				).Select(
-					"orders.id, orders.order_number, orders.status, orders.chef_id, orders.type, orders.payment_type, orders.quantity, menus.name, menus.description, menus.type, menus.id, menus.price",
+					"orders.id, orders.order_number, " +
+					"orders.status, orders.chef_id, " +
+					"orders.type, orders.payment_type, " +
+					"orders.quantity, menus.name, " +
+					"menus.description, menus.type, " +
+					"menus.id, menus.price",
 				).Joins(
-					"left join menus on menus.id = orders.dish_id",
-				).Where(
-					"order_number = ? AND status = ?",
-					order_number,order_status,
+					"left join menus on " +
+					"menus.id = orders.dish_id",
 				).Rows()
 		if err != nil {
 			log.Fatal(err)
@@ -296,23 +256,81 @@ func (a *App) ListHandler(tableId int, w http.ResponseWriter, r *http.Request) {
 			}
 			orders = append(orders,o)
 		}
-
 		if err := rows.Err(); err != nil {
 			log.Fatal(err)
 		}
-		on :=new(OrderByNumber)
-		on.OrderNumber = order_number
-		on.OrderList = orders
-		onl = append(onl,on)
-		orders_list = append(orders_list,orders)
+		tableJSON, _ = json.Marshal(orders)
+	case 4:	var orders_list [][]*OrderStatus
+		var onl []*OrderByNumber
+		order_status := "in_progress"
+		order_numbers, err := a.DB.Table(
+					"orders",
+				).Select(
+					"distinct order_number",
+				).Where(
+					"status = ?",
+					order_status,
+				).Rows()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer order_numbers.Close()
+		for order_numbers.Next() {
+			var orders []*OrderStatus
+			var order_number int64
+			if err := order_numbers.Scan(&order_number,);
+			   err != nil {
+				log.Fatal(err)
+			}
+			rows, err := a.DB.Table(
+					"orders",
+				).Select(
+					"orders.id, orders.order_number, " +
+					"orders.status, orders.chef_id, " +
+					"orders.type, orders.payment_type, " +
+					"orders.quantity, menus.name, " +
+					"menus.description, menus.type, " +
+					"menus.id, menus.price",
+				).Joins(
+					"left join menus on " +
+					"menus.id = orders.dish_id",
+				).Where(
+					"order_number = ? AND status = ?",
+					order_number,order_status,
+				).Rows()
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer rows.Close()
+			for rows.Next() {
+				o := new(OrderStatus)
+				if err := rows.Scan(
+						&o.OrderId, &o.OrderNumber,
+						&o.OrderStatus, &o.ChefId,
+						&o.OrderType,
+						&o.OrderPaymentType,
+						&o.OrderQuantity, &o.DishName,
+						&o.DishDescription, &o.DishType,
+						&o.DishId, &o.DishPrice,
+						); err != nil {
+					log.Fatal(err)
+				}
+				orders = append(orders,o)
+			}
+			if err := rows.Err(); err != nil {
+				log.Fatal(err)
+			}
+			on :=new(OrderByNumber)
+			on.OrderNumber = order_number
+			on.OrderList = orders
+			onl = append(onl,on)
+			orders_list = append(orders_list,orders)
+		}
+		//tableJSON, _ = json.MarshalIndent(onl, "", "")
+		tableJSON, _ = json.Marshal(onl)
 	}
-	//tableJSON, _ = json.MarshalIndent(onl, "", "")
-	tableJSON, _ = json.Marshal(onl)
-
-  }
-
-  w.WriteHeader(200)
-  w.Write([]byte(tableJSON))
+	w.WriteHeader(200)
+	w.Write([]byte(tableJSON))
 }
 
 
@@ -440,102 +458,107 @@ func (a *App) ViewHandler(tableId int, w http.ResponseWriter, r *http.Request) {
 }
 
 
-func (a *App) CreateHandler(tableId int, w http.ResponseWriter, r *http.Request) {
-  // Parse the POST body to populate r.PostForm.
-  if err := r.ParseForm(); err != nil {
-    panic("failed in ParseForm() call")
-  }
-  fmt.Printf("sdsd\n")
-  body, _ := ioutil.ReadAll(r.Body)
+func (a *App) CreateHandler(
+		tableId int,
+		w http.ResponseWriter,
+		r *http.Request) {
 
-  switch tableId {
-  case 1:
-	me := Menu{}
-	json.Unmarshal(body, &me)
-	fmt.Printf(string(me.Name))
-	a.DB.Create(&me)
-	u, err := url.Parse(fmt.Sprintf(RP_MENU + "/%s", me.Name))
-	if err != nil {
-		panic("failed to form new Menu URL")
+	// Parse the POST body to populate r.PostForm.
+	if err := r.ParseForm(); err != nil {
+		panic("failed in ParseForm() call")
 	}
-	base, err := url.Parse(r.URL.String())
-	if err != nil {
-		panic("failed to parse request URL")
-	}
-	w.Header().Set("Location", base.ResolveReference(u).String())
-	w.WriteHeader(201)
-  case 2:
-	or := Order{}
-	json.Unmarshal(body, &or)
-	fmt.Println(or)
-	current_time := time.Now()
-	ct := current_time.Format("2006-01-02 15:04:05")
-	ct4 := strings.Replace(strings.Replace(strings.Replace(ct,"-","",3)," ","",1),":","",3)
-	n, err := strconv.ParseInt(ct4, 10, 64)
-	if err == nil {
-		fmt.Printf("%d of type %T", n, n)
-	}
-	or.ChefId = "1"
-//	or.OrderNumber = n
-	fmt.Printf(string(or.DishId))
-	a.DB.Create(&or)
-	u, err := url.Parse(fmt.Sprintf(RP_MENU + "/%d", or.DishId))
-	if err != nil {
-		panic("failed to form new Menu URL")
-	}
-	base, err := url.Parse(r.URL.String())
-	if err != nil {
-		panic("failed to parse request URL")
-	}
+	fmt.Printf("sdsd\n")
+	body, _ := ioutil.ReadAll(r.Body)
+	switch tableId {
+		case 1:	me := Menu{}
+		json.Unmarshal(body, &me)
+		fmt.Printf(string(me.Name))
+		a.DB.Create(&me)
+		u, err := url.Parse(fmt.Sprintf(RP_MENU + "/%s", me.Name))
+		if err != nil {
+			panic("failed to form new Menu URL")
+		}
+		base, err := url.Parse(r.URL.String())
+		if err != nil {
+			panic("failed to parse request URL")
+		}
+		w.Header().Set("Location", base.ResolveReference(u).String())
+		w.WriteHeader(201)
+	case 2:
+		or := Order{}
+		json.Unmarshal(body, &or)
 
-	w.Header().Set("Location", base.ResolveReference(u).String())
-	w.WriteHeader(201)
-  }
+		fmt.Println(or)
+		current_time := time.Now()
 
+		ct := current_time.Format("2006-01-02 15:04:05")
+		ct4 := strings.Replace(
+				strings.Replace(
+					strings.Replace(
+						ct,"-","",3,
+					)," ","",1,
+				),":","",3)
+		n, err := strconv.ParseInt(ct4, 10, 64)
+		if err == nil {
+			fmt.Printf("%d of type %T", n, n)
+		}
 
+		or.ChefId = "1"
+		//or.OrderNumber = n
+		fmt.Printf(string(or.DishId))
+		a.DB.Create(&or)
+		u, err := url.Parse(fmt.Sprintf(RP_MENU + "/%d", or.DishId))
+
+		if err != nil {
+			panic("failed to form new Menu URL")
+		}
+		base, err := url.Parse(r.URL.String())
+
+		if err != nil {
+			panic("failed to parse request URL")
+		}
+
+		w.Header().Set("Location", base.ResolveReference(u).String())
+		w.WriteHeader(201)
+	}
 }
 
 func (a *App) UpdateHandler(w http.ResponseWriter, r *http.Request) {
-  vars := mux.Vars(r)
+	vars := mux.Vars(r)
+	// Parse the request body to populate r.PostForm.
+	if err := r.ParseForm(); err != nil {
+		panic("failed in ParseForm() call")
+	}
 
-  // Parse the request body to populate r.PostForm.
-  if err := r.ParseForm(); err != nil {
-    panic("failed in ParseForm() call")
-  }
+	// Set new menu values from the request body.
+	menu := &Menu{
+		Name: r.PostFormValue("name"),
+		Description: r.PostFormValue("description"),
+	}
 
-  // Set new menu values from the request body.
-  menu := &Menu{
-    Name: r.PostFormValue("name"),
-    Description: r.PostFormValue("description"),
-  }
+	// Update the menu with the given name.
+	a.DB.Model(&menu).Where("name = ?", vars["name"]).Updates(&menu)
 
-  // Update the menu with the given name.
-  a.DB.Model(&menu).Where("name = ?", vars["name"]).Updates(&menu)
-
-  // Write to HTTP response.
-  w.WriteHeader(204)
+	// Write to HTTP response.
+	w.WriteHeader(204)
 }
 
 func (a *App) DeleteHandler(w http.ResponseWriter, r *http.Request) {
-  vars := mux.Vars(r)
+	vars := mux.Vars(r)
 
-  // Delete the menu with the given name.
-  a.DB.Where("name = ?", vars["name"]).Delete(Menu{})
+	// Delete the menu with the given name.
+	a.DB.Where("name = ?", vars["name"]).Delete(Menu{})
 
-  // Write to HTTP response.
-  w.WriteHeader(204)
+	// Write to HTTP response.
+	w.WriteHeader(204)
 }
-
 
 func dbUpdateCallback(scope *gorm.Scope) {
-    if !scope.HasError() {
-        fmt.Printf("DB Update Error!!")
-    }
-    fmt.Printf("DB Updated")
-
+	if !scope.HasError() {
+		fmt.Printf("DB Update Error!!")
+	}
+	fmt.Printf("DB Updated")
 }
-
-
 
 func main() {
 
