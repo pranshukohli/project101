@@ -471,55 +471,61 @@ func (a *App) CreateHandler(
 	body, _ := ioutil.ReadAll(r.Body)
 	switch tableId {
 		case 1:	me := Menu{}
-		json.Unmarshal(body, &me)
-		fmt.Printf(string(me.Name))
-		a.DB.Create(&me)
-		u, err := url.Parse(fmt.Sprintf(RP_MENU + "/%s", me.Name))
-		if err != nil {
-			panic("failed to form new Menu URL")
-		}
-		base, err := url.Parse(r.URL.String())
-		if err != nil {
-			panic("failed to parse request URL")
-		}
-		w.Header().Set("Location", base.ResolveReference(u).String())
-		w.WriteHeader(201)
-	case 2:
-		or := Order{}
-		json.Unmarshal(body, &or)
+			json.Unmarshal(body, &me)
+			fmt.Printf(string(me.Name))
+			a.DB.Create(&me)
 
-		fmt.Println(or)
-		current_time := time.Now()
+			u, err := url.Parse(
+				fmt.Sprintf(RP_MENU + "/%s", me.Name))
+			if err != nil {
+				panic("failed to form new Menu URL")
+			}
 
-		ct := current_time.Format("2006-01-02 15:04:05")
-		ct4 := strings.Replace(
+			base, err := url.Parse(r.URL.String())
+			if err != nil {
+				panic("failed to parse request URL")
+			}
+
+			w.Header().Set(
+				"Location",
+				base.ResolveReference(u).String())
+			w.WriteHeader(201)
+		case 2:	or := Order{}
+			json.Unmarshal(body, &or)
+			fmt.Println(or)
+
+			current_time := time.Now()
+			ct := current_time.Format("2006-01-02 15:04:05")
+			ct4 := strings.Replace(
 				strings.Replace(
 					strings.Replace(
 						ct,"-","",3,
 					)," ","",1,
 				),":","",3)
-		n, err := strconv.ParseInt(ct4, 10, 64)
-		if err == nil {
-			fmt.Printf("%d of type %T", n, n)
-		}
+			n, err := strconv.ParseInt(ct4, 10, 64)
+			if err == nil {
+				fmt.Printf("%d of type %T", n, n)
+			}
 
-		or.ChefId = "1"
-		//or.OrderNumber = n
-		fmt.Printf(string(or.DishId))
-		a.DB.Create(&or)
-		u, err := url.Parse(fmt.Sprintf(RP_MENU + "/%d", or.DishId))
+			or.ChefId = "1"
+			//or.OrderNumber = n
+			fmt.Printf(string(or.DishId))
+			a.DB.Create(&or)
+			u, err := url.Parse(fmt.Sprintf(
+						RP_MENU + "/%d",
+						or.DishId))
+			if err != nil {
+				panic("failed to form new Menu URL")
+			}
 
-		if err != nil {
-			panic("failed to form new Menu URL")
-		}
-		base, err := url.Parse(r.URL.String())
+			base, err := url.Parse(r.URL.String())
+			if err != nil {
+				panic("failed to parse request URL")
+			}
 
-		if err != nil {
-			panic("failed to parse request URL")
-		}
-
-		w.Header().Set("Location", base.ResolveReference(u).String())
-		w.WriteHeader(201)
+			w.Header().Set("Location",
+					base.ResolveReference(u).String())
+			w.WriteHeader(201)
 	}
 }
 
