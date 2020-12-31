@@ -2,62 +2,138 @@ import React, { Component } from "react";
 import axios from 'axios';
 import { sendMsg } from "../../api";
 import "./CreateOrder.scss";
-
+import { Redirect } from 'react-router-dom';
+import empty_cart from '../../empty_cart.png';
 
 class CreateOrder extends Component {
 	constructor(props) {
 		super(props);
-		var d = new Date();
 		this.state = {
 			error: null,
 			isLoaded: false,
 			orderList: [],
-			orderNumber: d.getTime(),
+			orderNumber: '',
 		}
 	}
+
+	ColoredLine = (color) => (
+		<hr
+			style={{
+				color: color,
+				backgroundColor: color,
+				height: 1,
+				margin: 0,
+			}}
+		/>
+	)
 
 	handleChange = (e) => {
 		this.setState({
 			[e.target.name]: e.target.value
 		});
 	}
-
-	createNewOrder = () => {
-		console.log(this.props.newOrderItem[0][1]);
+	popUpMenu = () => {
+		return(
+			<div>{this.state.orderNumber}</div>
+		)
+	
+	}
+	createNewOrder = async () => {
 		var orderItems = this.props.newOrderItem;
+		var d = new Date();
+		var orderNumber = d.getTime();
+		this.setState({orderNumber: orderNumber});
+		var responses = [];
 		for (var i=0;i<orderItems.length;i++){
+			responses.push(
 			axios.post('/order', {
 				"dish_id": parseInt(orderItems[i][1]),
-				"order_number": this.state.orderNumber,
+				"order_number": orderNumber,
 				"quantity": parseInt(orderItems[i][3]), 
-			}).then(function (response) {
-				console.log(response);
-			})
-			sendMsg("update Menu");
+			}))
 		}
+		await axios
+		  .all(responses)
+		  .then(
+			axios.spread((...response) => {
+		  	sendMsg("update Menu");
+			console.log("123")
+		  }))
+		console.log("Done");
+//		window.location.replace("http://localhost:8080/bakemenu/"+this.state.orderNumber);
+
 	}
 
 	render() {
+		var noi = this.props.newOrderItem;
+		if (noi.length == 0){
+			return(
+			<div className="createOrderParent">
+				<h3 className="top-sticky">
+					Cart	
+					{this.ColoredLine("red")}	
+				</h3>
+				<div className="starting">
+					<img src = {empty_cart} />
+				</div>
+			</div>
+			)
+		}
+		else {
 		return(
-			<div className="createorder">
-				<h3>New Order #{this.state.orderNumber}</h3>
-				<ul>
+			<div className="createOrderParent">
+			<div className="createOrder">
+				<h3 className="top-sticky">
+					Cart	
+					{this.ColoredLine("red")}
+				</h3>
+				{this.popUpMenu()}
+				<ul className="menu-ul">
 				   {this.props.newOrderItem.map(item=>(  
-					<li key={item[1]}>
-					   {item[0]}
-					   &nbsp;&nbsp;&nbsp;
-					   &#x20B9;{item[2]}
-					   &nbsp;&nbsp;&nbsp;
-					   {item[3]}
+					<li className="menu-li" key={item[1]}>
+						<ul>
+							<li>
+					  			<span className="">
+								   	{item[0]}
+							   	</span>
+								<span className="float-right">
+									Full&nbsp;
+					   				<span className="vnv">
+					   					&#9679;
+					   				</span>
+								</span>
+						   	</li>
+							<li>
+					   {/*<button>-</button>*/}
+					   			&nbsp;&nbsp;&nbsp;		
+					   			{item[3]}
+					   			&nbsp;&nbsp;&nbsp;		
+					   {/*<button>+</button>*/}
+					   			&nbsp;&nbsp;&nbsp;
+					   			X
+					   			&nbsp;&nbsp;&nbsp;
+								&#x20B9;{item[2]}
+					   			&nbsp;&nbsp;&nbsp;		
+					   			=
+					   			&nbsp;&nbsp;&nbsp;		
+					   			&#x20B9;{item[2]*item[3]}
+						   	</li>
+						</ul> 
 					</li>
 				   ))}
 				</ul>
-				<h3>Total: &#x20B9;{this.props.totalSum}</h3>
-				<button name="createOrder" onClick={this.createNewOrder}>
-					Create Order
-				</button>
 			</div>
-		);
+			<div className="fixed-bottom">	
+			<h3>
+					<button name="createOrder" onClick={this.createNewOrder}>
+						Order
+					</button>
+					&nbsp;&nbsp;&nbsp;		
+					Total: &#x20B9;{this.props.totalSum}
+				</h3>
+			</div>
+		</div>
+		)}
 	}
 };
 

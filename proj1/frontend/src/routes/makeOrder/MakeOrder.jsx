@@ -17,22 +17,29 @@ class MakeOrder extends Component {
  	callbackFunction = (childData) => {
 		var items = this.state.newOrderItem;
 		var isPresent = false;
+		var deleteIndex = -1;
 		var total = 0;
 		items.map((item, index) => {
-			console.log("dd"+item);
 			if(item[1] == childData[1]) {
-				console.log("ddima"+item);
-				item[3]=item[3]+1;
+				item[3]=item[3]+childData[3];
 				isPresent = true;
+
 			}
-			total = total + item[2]*item[3];
+			if (item[3] >=0) { 
+				total = total + item[2]*item[3];
+			}
+			if(item[3] <= 0){
+				deleteIndex = index;	
+			}
 		});
-		console.log("ff");
-		if(!isPresent){
+		if(!isPresent && childData[3]>0){
 			items.push(childData);
 			total = total + childData[2]*childData[3];
 		}
-		console.log("ss" + total);
+
+		if(deleteIndex >=0){
+			items.splice(deleteIndex,1);
+		}
       		this.setState({
 			newOrderItem: items,
 			totalSum: parseInt(total),
@@ -48,7 +55,7 @@ class MakeOrder extends Component {
 	render() {
 		return (
 			<div className="makeorder">
-				<h1>Make Order</h1>
+			<h1>&nbsp;</h1>
 				<Menu ref="child" parentCallback = {this.callbackFunction}/>
 				<CreateOrder newOrderItem={this.state.newOrderItem} totalSum={this.state.totalSum} />
 			</div>

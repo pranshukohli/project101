@@ -632,7 +632,7 @@ func main() {
 	r.HandleFunc(
 		"/",
 		func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "Simple Server")
+			fmt.Fprintf(w, "!!Backend Server running correctly!!")
 		})
 	r.HandleFunc(
 		"/ws",func(w http.ResponseWriter, r *http.Request) {

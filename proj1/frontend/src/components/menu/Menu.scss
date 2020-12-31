@@ -2,18 +2,83 @@ $accent-color: #ff751a;
 $accent-color-lite: #ff9933;
 $accent-text-color: #ffffff;
 
-
-
 .menu{
-	position: relative;
+	position: sticky;
+	top: 12%;
+	left:9%;
+	height: 89%;
+	width: 50%;
 	overflow-y: auto;
 	overflow-x: auto;
-	width: 68%;
-	height: 80%;
-	float: left;
-	padding: 10px; 
+	background-color: #ffffff;
+	float:left;
+	box-shadow: 0px 4px 18px 4px #c2d6d6;
+
+	.top-sticky{
+                position: sticky;
+		top: 0px;
+		left: -10px;
+                background: #ffffff;
+                padding: 10px;
+        }
+	.view-button img{
+		float: right;
+		height: 25px;
+		width: 25px;
+		cursor: pointer;
+		transition: transform  .5s;
+	}
+	.view-button img:active {
+		transform: rotate(180deg);
+
+	}
+
+	.list-menu-container{
+		width: 100%;
+		height: 100%;
+		margin: 0px;
+		padding: 0px;
+		ul{
+			width: 100%;
+			list-style: none;
+			margin:0px;
+		        margin-bottom: 20px;
+		        padding: 10px;
+			li{
+				width: 100%;
+				ul{
+					padding:0px;
+					width: 100%;
+	                                margin:0px;
+	                                list-style:none;
+	                                border-bottom: 1px solid #c2d6d6;
+					li{
+						width: 100%;
+						padding: 10px;
+	                                        .float-left{
+	                                                float: left;
+	                                        }
+	                                        .float-right{
+	                                                float: right;
+							border-top-left-radius: 1.5em;
+							border-bottom-left-radius: 1.5em;
+							border-radius: 1.5em;
+							background-color: $accent-color;
+							color: $accent-text-color;
+							padding: 5px;
+	                                        }
+					}
+				}
+				ul:hover{
+                                	box-shadow: 0px 4px 18px -4px #c2d6d6;
+                        	}
+			}
+		}	
+	}
 }
+
 .menu-container{
+	padding-left: 65px;
 	width: 100%;
 	height: 100%;
 }
@@ -78,3 +143,4 @@ $accent-text-color: #ffffff;
 	border-style: solid;
 	float: left;
 }
+

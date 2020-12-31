@@ -21,7 +21,7 @@ class BakeMenu extends Component {
 
 
 	fetchBakeMenu = () => {
-	  axios.get('/bakemenufull')
+	  axios.get('/bakemenubyorder')
 	    .then(
 	    (repos) => {
 	      console.log(repos.data)
@@ -51,26 +51,39 @@ class BakeMenu extends Component {
             <div className="bakemenu">
               <p>BakeMenu</p>
               <ul>
-                {bakeOrders.map(item => (
-                <li key={item.OrderId}>
-                  <p>
-			{item.OrderNumber}
-			&nbsp;&nbsp;&nbsp;
-			{item.OrderStatus}
-			&nbsp;&nbsp;&nbsp;
-			{item.DishName}
-			&nbsp;&nbsp;&nbsp;
-			{item.OrderQuantity}
-			&nbsp;&nbsp;&nbsp;
-			{item.DishType}
-			&nbsp;&nbsp;&nbsp;
-			{item.OrderPaymentMode}
-			&nbsp;&nbsp;&nbsp;
-			{item.OrderType}
-			&nbsp;&nbsp;&nbsp;
-                  </p> 
-		</li>
-                ))}
+                {bakeOrders.map(itemlist => (
+			<li key={itemlist.OrderNumber}>
+			<ul>	
+				<div>
+					<span>
+						#{itemlist.OrderNumber}
+					</span>
+					<span className="float-right">
+						{itemlist.OrderList[0].OrderStatus}
+					</span>
+                		</div>
+				{itemlist.OrderList.map(item => (
+                			<li key={item.OrderId}>
+			                  <div>
+						{item.DishName}
+						&nbsp;&nbsp;&nbsp;
+						{item.OrderQuantity}
+						&nbsp;&nbsp;&nbsp;
+						{item.OrderType}
+						&nbsp;&nbsp;&nbsp;
+						<span className="status">
+							{item.OrderStatus}
+						</span>
+						&nbsp;&nbsp;&nbsp;
+			                  </div> 
+					</li>
+		                ))}
+			<div>
+			<button>Set Completed</button>
+			</div>
+			</ul>
+			</li>
+		))}
               </ul>
             </div>
           );
