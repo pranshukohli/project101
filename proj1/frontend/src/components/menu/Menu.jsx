@@ -9,6 +9,9 @@ import Card from 'react-bootstrap/Card';
 import Button from 'react-bootstrap/Button';
 import image1 from '../../view_image.png';
 
+const baseBackendURL = "http://192.168.3.120:8080" 
+
+
 class Menu extends Component {
 	constructor(props) { 
 	  super(props); 
@@ -29,7 +32,7 @@ class Menu extends Component {
 
 
 	fetchMenu = () => {
-	  axios.get('/menu')
+	  axios.get(baseBackendURL + '/v1/menu')
 	    .then(
 	    (repos) => {
 		    console.log("fetched data"+repos.data)
@@ -58,7 +61,7 @@ class Menu extends Component {
 	}
 
 	addToMenu = () => {
-	  axios.post('/menu', {
+	  axios.post(baseBackendURL + '/v1/menu', {
 	    "name": this.state.itemName,
 	    "price": parseInt(this.state.itemPrice),
 	    "description": this.state.itemDescription

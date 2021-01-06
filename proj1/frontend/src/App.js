@@ -1,6 +1,6 @@
 import React from 'react';
 import './App.css';
-import { BrowserRouter, Route, Switch } from 'react-router-dom';
+import { HashRouter, Route, Switch } from 'react-router-dom';
 
 import MakeOrder from './routes/makeOrder/MakeOrder.jsx';
 import BakeOrder from './routes/bakeOrder/BakeOrder.jsx';
@@ -10,7 +10,7 @@ import BakeMenuItem from './components/bakeMenuItem/BakeMenuItem';
 class App extends React.Component {
 	render() {
 		return (
-			<BrowserRouter>
+			<HashRouter>
 				<div className="app">
 					<Header /> 
 					<Switch>
@@ -21,7 +21,7 @@ class App extends React.Component {
 						<Route component={Error}/>
 					</Switch>
 				</div>
-			</BrowserRouter>
+			</HashRouter>
 		);
 	}
 }

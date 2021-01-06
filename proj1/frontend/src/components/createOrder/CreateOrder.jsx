@@ -5,6 +5,12 @@ import "./CreateOrder.scss";
 import { Redirect } from 'react-router-dom';
 import empty_cart from '../../empty_cart.png';
 
+const baseBackendURL = "http://192.168.3.120:8080"
+
+axios.defaults.headers.post['Content-Type'] ='application/json;charset=utf-8';
+axios.defaults.headers.post['Access-Control-Allow-Origin'] = '*';
+axios.defaults.headers.post['Access-Control-Allow-Headers'] = '*';
+
 class CreateOrder extends Component {
 	constructor(props) {
 		super(props);
@@ -46,7 +52,7 @@ class CreateOrder extends Component {
 		var responses = [];
 		for (var i=0;i<orderItems.length;i++){
 			responses.push(
-			axios.post('/order', {
+			axios.post(baseBackendURL + '/v1/order', {
 				"dish_id": parseInt(orderItems[i][1]),
 				"order_number": orderNumber,
 				"quantity": parseInt(orderItems[i][3]), 
@@ -56,12 +62,11 @@ class CreateOrder extends Component {
 		  .all(responses)
 		  .then(
 			axios.spread((...response) => {
-		  	sendMsg("update Menu");
-			console.log("123")
+			console.log(response)
+		  	sendMsg("update_bakemenu");
 		  }))
 		console.log("Done");
-//		window.location.replace("http://localhost:8080/bakemenu/"+this.state.orderNumber);
-
+		//ADD MODEL for "ORDER PLACED proceed to :NEW ORDER or VIEW ORDER"
 	}
 
 	render() {

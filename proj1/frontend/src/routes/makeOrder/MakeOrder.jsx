@@ -48,7 +48,9 @@ class MakeOrder extends Component {
 	}	
 	componentDidMount() {
 		connect((msg) => {
-			this.refs.child.fetchMenu();
+			if(msg.data != null)
+				if(JSON.parse(msg.data).body == "update_menu")
+					this.refs.child.fetchMenu();
 		});
 		this.refs.child.fetchMenu();
 	}
