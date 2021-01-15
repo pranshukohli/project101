@@ -759,6 +759,7 @@ func httpRoutingHandler(a *App, pool *Pool) {
 		store.Options.Path = "/"
 		store.Options.HttpOnly = true
 		store.Options.Secure = isProd
+		store.Options.Domain = "amazonaws.com:8080"
 
 		gothic.Store = store
 
@@ -766,7 +767,7 @@ func httpRoutingHandler(a *App, pool *Pool) {
 			google.New(
 				"294787796772-h5jpfgnq9rd3cf8roohi126f5em34q30.apps.googleusercontent.com",
 				"xje35yKstxrwSDruOEmc9yDQ",
-				"http://ckcserver.loca.lt/v1/auth/google/callback",
+				"http://ec2-65-0-12-62.ap-south-1.compute.amazonaws.com:8080/v1/auth/google/callback",
 				"email",
 				"profile"),
 		)
@@ -794,7 +795,7 @@ func httpRoutingHandler(a *App, pool *Pool) {
 		store.Options.Path = "/"
 		store.Options.HttpOnly = true
 		store.Options.Secure = isProd
-		store.Options.Domain = "loca.lt"
+		store.Options.Domain = "amazonaws.com:8080"
 
 		session,err := store.New(req, "project101_session")
 		session.Values["google_id"] = user.Email
@@ -808,7 +809,7 @@ func httpRoutingHandler(a *App, pool *Pool) {
 		http.Redirect(
 			res,
 			req,
-			"http://ckcclient.loca.lt",
+			"http://ec2-65-0-12-62.ap-south-1.compute.amazonaws.com/ckc",
 			http.StatusFound)
 
 	})
@@ -818,7 +819,7 @@ func httpRoutingHandler(a *App, pool *Pool) {
 		gothic.Logout(res, req)
 
 		store := sessions.NewCookieStore([]byte(SESSION_SECRET_KEY))
-		store.Options.Domain = "loca.lt"
+		store.Options.Domain = ""
 
 		session,err := store.Get(req, "project101_session")
 		if err != nil {
@@ -832,7 +833,7 @@ func httpRoutingHandler(a *App, pool *Pool) {
 		http.Redirect(
 			res,
 			req,
-			"http://ckcclient.loca.lt",
+			"http://ec2-65-0-12-62.ap-south-1.compute.amazonaws.com/ckc",
 			http.StatusFound)
 	})
 
