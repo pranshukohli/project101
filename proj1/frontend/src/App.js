@@ -2,6 +2,7 @@ import React from 'react';
 import './App.css';
 import { HashRouter, Route, Switch } from 'react-router-dom';
 
+import login from './routes/login/login.js';
 import MakeOrder from './routes/makeOrder/MakeOrder.jsx';
 import BakeOrder from './routes/bakeOrder/BakeOrder.jsx';
 import Header from './components/header/Header';
@@ -20,6 +21,7 @@ class App extends React.Component {
 						<Route path="/makeorder" component={MakeOrder}/>
 						<Route path="/bakeorder" component={BakeOrder}/>
 						<Route path="/bakeorderitem/:ordernumber" component={BakeMenuItem}/>
+						<Route path="/login" component={login}/>
 						<Route component={Error}/>
 					</Switch>
 				</div>
