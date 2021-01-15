@@ -1,0 +1,35 @@
+$in-prgs: #39ac39;
+$in-prgs-text: #ffffff;
+$in-prgs-shadow: #c6ecc6;
+
+.bakemenuitem{
+	background: #ffffff;
+	padding: 20px;
+	width: 80%;
+	margin: auto;
+
+	ul {
+		width: 100%;
+		cursor: pointer;
+		list-style: none;
+		background: #ffffff;
+		border-bottom: 1px solid #c2d6d6;
+		.float-right{
+			float: right;
+			background-color: $in-prgs;
+			color: $in-prgs-text;
+			border-radius: 2rem;
+			padding: 5px;	
+			box-shadow: 0px 4px 18px -4px $in-prgs-shadow;
+		}
+		li {
+			width: 100%;
+			.status{
+				color: $in-prgs;
+			}
+		}
+	}
+	ul:hover{
+		box-shadow: 0px 8px 18px -4px #c2d6d6;
+	}
+}
