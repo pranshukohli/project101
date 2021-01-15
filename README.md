@@ -1,8 +1,8 @@
 # project101
 
-https://lucky-frog-93.loca.lt/
+frontend:
+http://ec2-65-0-12-62.ap-south-1.compute.amazonaws.com/ckc
 
-React hosted at:-
-http://motukidukan.loca.lt
-(Click continue to proceed)
+backend golang server:-
+http://ec2-65-0-12-62.ap-south-1.compute.amazonaws.com:8080/v1/
 
