@@ -11,7 +11,16 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"io/ioutil"
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth/providers/google"
+	"github.com/gorilla/sessions"
+	"reflect"
 )
+
+//session_secret
+const SESSION_SECRET_KEY = "xWYMMrMKTd6XD34e5MTOmrdQyXkCaIeQ"  // need to place somewhere in files
+
 
 //database constants
 const DATABASE = "sqlite3"
@@ -19,7 +28,7 @@ const DATABASE_NAME = "db/test.db"
 
 //rest path(RP) constants
 const RP_MENU = "/menu"
-const RP_MENU_UPDATE = "/menuupdate"
+const RP_MENU_UPDATE = "/bakemenuupdate"
 const RP_BAKEMENU = "/bakemenu"
 
 //Tables with the ID
@@ -108,11 +117,11 @@ func (pool *Pool) start() {
 		select {
 		case client := <-pool.Register:
 			pool.Clients[client] = true
+			log.Println(client)
 			log.Println(
 				"Size of Connection Pool: ",
 				len(pool.Clients))
 			for client, _ := range pool.Clients {
-				log.Println(client)
 				client.Conn.WriteJSON(
 					Message{
 						Type:	1,
@@ -184,6 +193,10 @@ func upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 // define our WebSocket endpoint
 func (a *App) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
 	log.Printf(r.Host)
+	for _, cookie := range r.Cookies() {
+		log.Printf(cookie.Name)
+		log.Printf(cookie.Value)
+	}
 	conn, err := upgrade(w, r)
 
 	if err != nil {
@@ -197,6 +210,7 @@ func (a *App) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
 
 	pool.Register <- client
 	client.read(a)
+	log.Printf("qwerty" + client.ID)
 	log.Printf("Client Connected")
 }
 
@@ -210,6 +224,34 @@ func (a *App) Initialize(dbDriver string, dbURI string) {
 	//a.DB.AutoMigrate(&Order{})
 }
 
+func ProfileHandler(
+		w http.ResponseWriter,
+		r *http.Request) {
+
+			p := ""
+			log.Printf("cookie")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			if origin := r.Header.Get("Origin"); origin != "" {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			}
+
+			for _, cookie := range r.Cookies() {
+				log.Printf(cookie.Name)
+				log.Printf(cookie.Value)
+			}
+
+			store := sessions.NewCookieStore([]byte(SESSION_SECRET_KEY))
+			session,err := store.Get(r, "project101_session")
+			if err != nil {
+				log.Println(err)
+			}else if session.Values["google_id"] != nil {
+				log.Printf(session.Values["google_id"].(string))
+				p = session.Values["google_id"].(string)
+			}
+		w.WriteHeader(200)
+		w.Write([]byte(p))
+		}
+
 func (a *App) ListHandler(
 		tableId int,
 		w http.ResponseWriter,
@@ -217,12 +259,33 @@ func (a *App) ListHandler(
 	var tableJSON []uint8
 	switch tableId {
 	case 1:	var menus []Menu
+		log.Printf("cookie")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+//		w.Header().Set("Access-Control-Allow-Origin", "http://192.168.3.120,http://192.168.3.120:3000")
+		if origin := r.Header.Get("Origin"); origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		}
+		for _, cookie := range r.Cookies() {
+			log.Printf(cookie.Name)
+			log.Printf(cookie.Value)
+		}
+		store := sessions.NewCookieStore([]byte(SESSION_SECRET_KEY))
+		session,err := store.Get(r, "project101_session")
+		if err != nil {
+			log.Println(err)
+		}else if session.Values["google_id"] != nil {
+			log.Printf(session.Values["google_id"].(string))
+		}
 		a.DB.Find(&menus)
 		tableJSON, _ = json.Marshal(menus)
-	case 2:	var orders []Order
+	case 2:
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		var orders []Order
 		a.DB.Find(&orders)
 		tableJSON, _ = json.Marshal(orders)
-	case 3:	var orders []*OrderStatus
+	case 3:
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		var orders []*OrderStatus
 		rows, err := a.DB.Table(
 					"orders",
 				).Select(
@@ -258,7 +321,9 @@ func (a *App) ListHandler(
 			log.Fatal(err)
 		}
 		tableJSON, _ = json.Marshal(orders)
-	case 4:	var orders_list [][]*OrderStatus
+	case 4:
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		var orders_list [][]*OrderStatus
 		var onl []*OrderByNumber
 		order_status := "in_progress"
 		order_numbers, err := a.DB.Table(
@@ -337,7 +402,6 @@ func (a *App) ListHandler(
 	}
 
 	log.Printf("collected orders in progress")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(200)
 	w.Write([]byte(tableJSON))
 }
@@ -581,21 +645,30 @@ func dbUpdateCallback(scope *gorm.Scope) {
 	log.Printf("DB Updated")
 }
 
-func main() {
+func setupNewOuth() {
+	maxAge := 86400 * 1
+	isProd := false
 
-	//Initilise Database
-	a := &App{}
-	a.Initialize(DATABASE, DATABASE_NAME)
-	//Callback functioin when and if database gets a new row -- gorm
-	//a.DB.Callback().Create().Register(
-	//			"gorm:after_create",
-	//			dbUpdateCallback)
-	defer a.DB.Close()
+	store := sessions.NewCookieStore([]byte(SESSION_SECRET_KEY))
+	store.MaxAge(maxAge)
+	store.Options.Path = "/"
+	store.Options.HttpOnly = true
+	store.Options.Secure = isProd
 
-	//Running a thread for multiple websocket connections
-	pool := newPool()
-	go pool.start()
+	gothic.Store = store
 
+	goth.UseProviders(
+		google.New(
+			"294787796772-h5jpfgnq9rd3cf8roohi126f5em34q30.apps.googleusercontent.com",
+			"xje35yKstxrwSDruOEmc9yDQ",
+			"http://ckcserver.loca.lt/v1/auth/google/callback",
+			"email",
+			"profile"),
+	)
+}
+
+
+func httpRoutingHandler(a *App, pool *Pool) {
 
 	//For routing server for different paths -- rest approach
 	//Using mux for routing
@@ -607,6 +680,11 @@ func main() {
 		RP_MENU,
 		func(w http.ResponseWriter, r *http.Request) {
 			a.ListHandler(TABLEID["MENUS"], w, r)
+		}).Methods("GET")
+	r1.HandleFunc(
+		"/profile",
+		func(w http.ResponseWriter, r *http.Request) {
+			ProfileHandler(w, r)
 		}).Methods("GET")
 	r1.HandleFunc(
 		RP_BAKEMENU + "",
@@ -658,7 +736,8 @@ func main() {
 		}).Methods("OPTIONS")
 	r1.HandleFunc(
 		RP_MENU + "/{name:.+}",
-		a.DeleteHandler).Methods("DELETE")
+		a.DeleteHandler,
+		).Methods("DELETE")
 	r1.HandleFunc(
 		"/",
 		func(w http.ResponseWriter, r *http.Request) {
@@ -670,6 +749,93 @@ func main() {
 		})
 
 
+
+	r1.HandleFunc("/auth/{provider}", func(res http.ResponseWriter, req *http.Request) {
+		maxAge := 86400 * 1
+		isProd := false
+
+		store := sessions.NewCookieStore([]byte(SESSION_SECRET_KEY))
+		store.MaxAge(maxAge)
+		store.Options.Path = "/"
+		store.Options.HttpOnly = true
+		store.Options.Secure = isProd
+
+		gothic.Store = store
+
+		goth.UseProviders(
+			google.New(
+				"294787796772-h5jpfgnq9rd3cf8roohi126f5em34q30.apps.googleusercontent.com",
+				"xje35yKstxrwSDruOEmc9yDQ",
+				"http://ckcserver.loca.lt/v1/auth/google/callback",
+				"email",
+				"profile"),
+		)
+		log.Println("sdsds")
+		log.Println(reflect.TypeOf(store))
+		gothic.BeginAuthHandler(res, req)
+	})
+
+	r1.HandleFunc("/auth/{provider}/callback", func(res http.ResponseWriter, req *http.Request) {
+
+		user, err := gothic.CompleteUserAuth(res, req)
+
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		log.Printf(user.Name)
+
+		maxAge := 86400 * 1
+		isProd := false
+
+		store := sessions.NewCookieStore([]byte(SESSION_SECRET_KEY))
+		store.MaxAge(maxAge)
+		store.Options.Path = "/"
+		store.Options.HttpOnly = true
+		store.Options.Secure = isProd
+		store.Options.Domain = "loca.lt"
+
+		session,err := store.New(req, "project101_session")
+		session.Values["google_id"] = user.Email
+		session.Values["google_un"] = user.Name
+		session.Values["google_at"] = user.AccessToken
+		session.Save(req,res)
+		for _, cookie := range req.Cookies() {
+			log.Printf(cookie.Name)
+			log.Printf(cookie.Value)
+		}
+		http.Redirect(
+			res,
+			req,
+			"http://ckcclient.loca.lt",
+			http.StatusFound)
+
+	})
+
+	r1.HandleFunc("/logout/{provider}", func(res http.ResponseWriter, req *http.Request) {
+
+		gothic.Logout(res, req)
+
+		store := sessions.NewCookieStore([]byte(SESSION_SECRET_KEY))
+		store.Options.Domain = "loca.lt"
+
+		session,err := store.Get(req, "project101_session")
+		if err != nil {
+			log.Println(err)
+			log.Println("error|^")
+		}
+		session.Options.MaxAge = -1
+		session.Values = make(map[interface{}]interface{})
+		session.Save(req,res)
+
+		http.Redirect(
+			res,
+			req,
+			"http://ckcclient.loca.lt",
+			http.StatusFound)
+	})
+
 	//go http library to handle http requests
 	//http.Handle("/", r)
 
@@ -677,4 +843,30 @@ func main() {
 	if err := http.ListenAndServe(":8080", r); err != nil {
 		panic(err)
 	}
+
 }
+
+
+func main() {
+
+	//Initilise Database
+	a := &App{}
+	a.Initialize(DATABASE, DATABASE_NAME)
+	//Callback functioin when and if database gets a new row -- gorm
+	//a.DB.Callback().Create().Register(
+	//			"gorm:after_create",
+	//			dbUpdateCallback)
+	defer a.DB.Close()
+
+	//Running a thread for multiple websocket connections
+	pool := newPool()
+	go pool.start()
+
+	//Setting required params for Google Authrisation
+	setupNewOuth()
+
+	//Setting up handlers for http api handling
+	httpRoutingHandler(a, pool)
+
+}
+

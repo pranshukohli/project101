@@ -26,12 +26,14 @@ class BakeOrder extends Component {
 			} else if(msg == "database_out_of_sync") {
 				this.setDatabaseSync(false);
 			} else if (msg.data != null){ 
-					if(JSON.parse(msg.data).body == "update_bakemenu") {
-					this.refs.child.fetchBakeMenu(true);
-				}
+				if(JSON.parse(msg.data).body == "update_bakemenu_new") {
+					this.refs.child.fetchBakeMenu(true,false);
+				} else if(JSON.parse(msg.data).body == "update_bakemenu_com") {
+					this.refs.child.fetchBakeMenu(false,true);
+				} 
 			}
 		});
-		this.refs.child.fetchBakeMenu();
+		this.refs.child.fetchBakeMenu(false, false);
 	}
 
 	setDatabaseSync(isConnected) {

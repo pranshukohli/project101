@@ -5,7 +5,7 @@ import "./CreateOrder.scss";
 import { Redirect } from 'react-router-dom';
 import empty_cart from '../../empty_cart.png';
 
-const baseBackendURL = "http://192.168.3.120:8080"
+const baseBackendURL = "http://ec2-65-0-12-62.ap-south-1.compute.amazonaws.com:8080"
 
 axios.defaults.headers.post['Content-Type'] ='application/json;charset=utf-8';
 axios.defaults.headers.post['Access-Control-Allow-Origin'] = '*';
@@ -44,6 +44,17 @@ class CreateOrder extends Component {
 		)
 	
 	}
+
+	alterOrder = (name, dish_id, price, quantity) => {
+            var item =[
+                     name,
+                     dish_id,
+                     price,
+                     quantity
+            ];
+            this.props.parentCallback(item);
+        }
+
 	createNewOrder = async () => {
 		var orderItems = this.props.newOrderItem;
 		var d = new Date();
@@ -63,7 +74,7 @@ class CreateOrder extends Component {
 		  .then(
 			axios.spread((...response) => {
 			console.log(response)
-		  	sendMsg("update_bakemenu");
+		  	sendMsg("update_bakemenu_new");
 		  }))
 		console.log("Done");
 		//ADD MODEL for "ORDER PLACED proceed to :NEW ORDER or VIEW ORDER"
@@ -109,11 +120,23 @@ class CreateOrder extends Component {
 								</span>
 						   	</li>
 							<li>
-					   {/*<button>-</button>*/}
+					   <button className="" onClick={() => this.alterOrder(
+						   item[0],
+						   item[1],
+						   item[2], -1)
+					   }>
+					   -
+					   </button>
 					   			&nbsp;&nbsp;&nbsp;		
 					   			{item[3]}
 					   			&nbsp;&nbsp;&nbsp;		
-					   {/*<button>+</button>*/}
+					   <button className="" onClick={() => this.alterOrder(
+						   item[0],
+						   item[1],
+						   item[2], 1)
+					   }>
+					   +
+					   </button>
 					   			&nbsp;&nbsp;&nbsp;
 					   			X
 					   			&nbsp;&nbsp;&nbsp;

@@ -6,6 +6,7 @@ import MakeOrder from './routes/makeOrder/MakeOrder.jsx';
 import BakeOrder from './routes/bakeOrder/BakeOrder.jsx';
 import Header from './components/header/Header';
 import BakeMenuItem from './components/bakeMenuItem/BakeMenuItem';
+import Profile from './components/profile/Profile.jsx';
 
 class App extends React.Component {
 	render() {
@@ -13,6 +14,7 @@ class App extends React.Component {
 			<HashRouter>
 				<div className="app">
 					<Header /> 
+					<Profile />
 					<Switch>
 						<Route path="/" component={MakeOrder} exact/>
 						<Route path="/makeorder" component={MakeOrder}/>

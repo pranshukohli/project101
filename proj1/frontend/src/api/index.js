@@ -1,5 +1,5 @@
 // api/index.js
-var socket = new WebSocket("ws://192.168.3.120:8080/v1/ws");
+var socket = new WebSocket("ws://ec2-65-0-12-62.ap-south-1.compute.amazonaws.com:8080/v1/ws");
 const IN_SYNC = "database_in_sync";
 const OUT_OF_SYNC = "database_out_of_sync";
 

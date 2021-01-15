@@ -9,7 +9,7 @@ import Card from 'react-bootstrap/Card';
 import Button from 'react-bootstrap/Button';
 import image1 from '../../view_image.png';
 
-const baseBackendURL = "http://192.168.3.120:8080" 
+const baseBackendURL = "http://ec2-65-0-12-62.ap-south-1.compute.amazonaws.com:8080" 
 
 
 class Menu extends Component {
@@ -32,7 +32,8 @@ class Menu extends Component {
 
 
 	fetchMenu = () => {
-	  axios.get(baseBackendURL + '/v1/menu')
+
+	  axios.get(baseBackendURL + '/v1/menu',{withCredentials: true})
 	    .then(
 	    (repos) => {
 		    console.log("fetched data"+repos.data)
@@ -69,7 +70,7 @@ class Menu extends Component {
 	  .then(function (response) {
 	     console.log(response);
 	  })
-	  sendMsg("update Menu");
+	  sendMsg("update_menu_new");
 	}
 
 	MenuWithCards = (items) => {
@@ -182,44 +183,49 @@ class Menu extends Component {
 
 
 	render() {
-          const { error, isLoaded, items} = this.state;
-          if (error) {
-            return <div>Error: {error.message}</div>;
-          } else if (!isLoaded) {
-            return <div className="menu">Loading Menu</div>;
-          } else {
-		  if(this.state.view == "cards"){
-		 
-	  return(
-	    <div className="menu">
-              <h3 className="top-sticky">
-		  Menu
-		  <span className="view-button" 
-		  	onClick={() => this.setState({view: "list"})}>
-		  	<img src={image1}/>	
-		  </span>
-		  {this.ColoredLine("red")}
-	      </h3>
-	      {this.MenuWithCards(items)}
-            </div>
-          );
-		  }
-		  else if(this.state.view == "list"){
-	  return(
-	    <div className="menu">
-              <h3 className="top-sticky">
-		  Menu
-		  <span className="view-button" 
-		  	onClick={() => this.setState({view: "cards"})}>
-		  	<img src={image1}/>	
-		  </span>
-		  {this.ColoredLine("red")}
-	      </h3>
-	      {this.MenuWithList(items)}
-            </div>
-          );
-		  }
-        }
+		const { error, isLoaded, items} = this.state;
+		if (error) {
+			return <div>Error: {error.message}</div>;
+		} else if (!isLoaded) {
+			return <div className="menu">Loading Menu</div>;
+		}else {
+			if(this.state.view == "cards"){
+
+				return(
+					<div className="menu">
+						<h3 className="top-sticky">
+							Menu
+							<span 
+								className="view-button"
+								onClick={
+									() => this.setState(
+										{view: "list"})}>
+								<img src={image1}/>	
+							</span>
+							{this.ColoredLine("red")}
+						</h3>
+						{this.MenuWithCards(items)}
+					</div>
+				);
+			}else if(this.state.view == "list"){
+				return(
+					<div className="menu">
+						<h3 className="top-sticky">
+							Menu
+							<span 
+								className="view-button" 
+								onClick={
+									() => this.setState(
+										{view: "cards"})}>
+								<img src={image1}/>	
+							</span>
+							{this.ColoredLine("red")}
+						</h3>
+						{this.MenuWithList(items)}
+					</div>
+				);
+			}
+		}
 	}
 };
 

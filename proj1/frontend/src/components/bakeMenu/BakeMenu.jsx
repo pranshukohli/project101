@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import axios from 'axios';
 import { sendMsg } from "../../api";
 import "./BakeMenu.scss";
-const baseBackendURL = "http://192.168.3.120:8080"
+const baseBackendURL = "http://ec2-65-0-12-62.ap-south-1.compute.amazonaws.com:8080"
 
 class BakeMenu extends Component {
 	constructor(props) { 
@@ -14,6 +14,7 @@ class BakeMenu extends Component {
             menu: '',
 	    bakeOrderInProgress:  0,
 	    showAlert: false,
+	    war: "",
 	  }
 	}
 
@@ -22,7 +23,7 @@ class BakeMenu extends Component {
         }
 
 
-	fetchBakeMenu = (isNew) => {
+	fetchBakeMenu = (isNew, isUpdate) => {
 	  axios.get(baseBackendURL + '/v1/bakemenubyorder')
 	    .then(
 	    (repos) => {
@@ -43,6 +44,13 @@ class BakeMenu extends Component {
 	   	console.log("new order")
 		this.setState({
 			showAlert: true,
+			war: "Got New Order!!",
+		})
+	   }else if(isUpdate) {
+	   	console.log("update order")
+		this.setState({
+			showAlert: true,
+			war: "Completed Order!!",
 		})
 	   }
 	}
@@ -51,17 +59,18 @@ class BakeMenu extends Component {
 	   	console.log("release new order")
 		this.setState({
 			showAlert: false,
+			war: "",
 		})
 	
 	}
 
 	alertNewOrder = () => {
 		const show = this.state.showAlert;
-
+		var war = this.state.war;
 		if (show) {
 			return (
 				<div className="alert alert-warning alert-dismissible show" role="alert">
-				<strong>New Order!</strong>
+				<strong>{war}</strong>
 				<button type="button" className="close" data-dismiss="alert" 
 					aria-label="Close" onClick = {() => this.closeAlert()}>
 					<span aria-hidden="true">&times;</span>
@@ -73,11 +82,11 @@ class BakeMenu extends Component {
 
 	updateOrder = async(order_number) => {
                 axios
-                        .put(baseBackendURL + "/v1/menuupdate/" + order_number)
+                        .put(baseBackendURL + "/v1/bakemenuupdate/" + order_number)
                         .then(
 				(response) => {
 					console.log(response);
-                                	sendMsg("update_bakemenu");
+                                	sendMsg("update_bakemenu_com");
 				},
 				(error) => {
 					console.log(error);

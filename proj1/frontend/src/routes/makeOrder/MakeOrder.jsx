@@ -44,7 +44,6 @@ class MakeOrder extends Component {
 			newOrderItem: items,
 			totalSum: parseInt(total),
 		})
-		console.log("dd" + this.state.totalSum);
 	}	
 	componentDidMount() {
 		connect((msg) => {
@@ -58,8 +57,13 @@ class MakeOrder extends Component {
 		return (
 			<div className="makeorder">
 			<h1>&nbsp;</h1>
-				<Menu ref="child" parentCallback = {this.callbackFunction}/>
-				<CreateOrder newOrderItem={this.state.newOrderItem} totalSum={this.state.totalSum} />
+				<Menu 
+					ref="child" 
+					parentCallback = {this.callbackFunction}/>
+				<CreateOrder 
+					parentCallback = {this.callbackFunction} 
+					newOrderItem={this.state.newOrderItem} 
+					totalSum={this.state.totalSum} />
 			</div>
 		);
 	}
