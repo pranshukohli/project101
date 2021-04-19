@@ -51,14 +51,29 @@ class Menu extends Component {
 	   )
 	}
 
+	alterSelfOrder = (dish_id, quantity) => {
+
+		var qty = parseInt(
+				document.getElementById(dish_id)
+					.querySelector("#qty")
+					.innerHTML,10);
+		if (!(qty <= 0 && quantity == -1)) {
+			document.getElementById(dish_id)
+				.querySelector("#qty")
+				.innerHTML = qty + quantity;
+		}
+	
+	}
+
 	alterOrder = (name, dish_id, price, quantity) => {
-	    var item =[ 
-		     name,
-		     dish_id,
-		     price,
-		     quantity
-	    ];
-	    this.props.parentCallback(item);
+		var item =[ 
+			name,
+			dish_id,
+			price,
+			quantity
+		];
+		this.props.parentCallback(item);
+		this.alterSelfOrder(dish_id, quantity)
 	}
 
 	addToMenu = () => {
@@ -116,7 +131,7 @@ class Menu extends Component {
           <Container className="list-menu-container">
               <ul>
                 {subset.map(item => (
-                <li key={item.dish_id}>
+                <li id={item.dish_id} key={item.dish_id}>
 			<ul>
 				<li className="">
 					<span className="float-right">
@@ -137,7 +152,7 @@ class Menu extends Component {
 					}>
 						-	
 					</button>
-					&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;
+					&nbsp;&nbsp;&nbsp;<span id="qty">0</span>&nbsp;&nbsp;&nbsp;
 					<button className="" onClick={() => this.alterOrder(
 								item.name,
 								item.dish_id,

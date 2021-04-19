@@ -21,15 +21,17 @@ class BakeOrder extends Component {
 	}	
 	componentDidMount() {
 		connect((msg) => {
+			console.log(msg)
 			if(msg == "database_in_sync") {
 				this.setDatabaseSync(true);
 			} else if(msg == "database_out_of_sync") {
 				this.setDatabaseSync(false);
-			} else if (msg.data != null){ 
-				if(JSON.parse(msg.data).body == "update_bakemenu_new") {
-					this.refs.child.fetchBakeMenu(true,false);
-				} else if(JSON.parse(msg.data).body == "update_bakemenu_com") {
-					this.refs.child.fetchBakeMenu(false,true);
+			} else if (JSON.parse(msg.data).body != null){
+				if(JSON.parse(JSON.parse(msg.data).body).msg != null) {
+					this.refs.child.fetchBakeMenu(
+						JSON.parse(JSON.parse(msg.data).body).msg,
+						JSON.parse(JSON.parse(msg.data).body).orderNumber
+					);
 				} 
 			}
 		});

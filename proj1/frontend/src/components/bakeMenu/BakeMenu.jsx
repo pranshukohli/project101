@@ -15,6 +15,7 @@ class BakeMenu extends Component {
 	    bakeOrderInProgress:  0,
 	    showAlert: false,
 	    war: "",
+	    unak: [],
 	  }
 	}
 
@@ -23,10 +24,34 @@ class BakeMenu extends Component {
         }
 
 
-	fetchBakeMenu = (isNew, isUpdate) => {
+	fetchBakeMenu = (msg,orderNumber) => {
+	   if(msg == "update_bakemenu_new") {
+	   	console.log("new order")
+		this.setState({
+			showAlert: true,
+			war: "!!Got New Order!! "+orderNumber,
+		})
+	   }else if(msg == "update_bakemenu_com") {
+	   	console.log("update order")
+		this.setState({
+			showAlert: true,
+			war: "Last Completed Order!! "+orderNumber,
+		})
+	   }
 	  axios.get(baseBackendURL + '/v1/bakemenubyorder')
 	    .then(
 	    (repos) => {
+		    if(msg == "update_bakemenu_new"){
+		    	repos.data[0].type="recent new [Aknowledge]"
+			var _unak = this.state.unak
+			_unak.push(orderNumber)
+			    this.setState({
+			    	unak:_unak,
+			    })
+			    console.log("S"+_unak)
+			    console.log("a"+this.state.unak)
+		    }
+		    console.log(repos.data[0])
 	      this.setState({
 	        isLoaded: true,
 	        bakeOrders: repos.data,
@@ -40,19 +65,6 @@ class BakeMenu extends Component {
 	      });
 	    }
 	   );
-	   if(isNew) {
-	   	console.log("new order")
-		this.setState({
-			showAlert: true,
-			war: "Got New Order!!",
-		})
-	   }else if(isUpdate) {
-	   	console.log("update order")
-		this.setState({
-			showAlert: true,
-			war: "Completed Order!!",
-		})
-	   }
 	}
 
 	closeAlert = () =>{
@@ -80,13 +92,19 @@ class BakeMenu extends Component {
 		}
 	}	
 
+	viewOrder = async(order_number) =>{
+		alert(order_number)
+	}
+
 	updateOrder = async(order_number) => {
                 axios
                         .put(baseBackendURL + "/v1/bakemenuupdate/" + order_number)
                         .then(
 				(response) => {
 					console.log(response);
-                                	sendMsg("update_bakemenu_com");
+                                	sendMsg(JSON.stringify(
+						{msg:"update_bakemenu_com",orderNumber:order_number}
+					));
 				},
 				(error) => {
 					console.log(error);
@@ -101,7 +119,7 @@ class BakeMenu extends Component {
 		return d.toLocaleString();
 	}
 	render() {
-          const { error, isLoaded, bakeOrders} = this.state;
+          const { error, isLoaded, bakeOrders, unak} = this.state;
           if (error) {
             return <div>Error: {error.message}</div>;
           } else if (!isLoaded) {
@@ -109,18 +127,23 @@ class BakeMenu extends Component {
           } else {
 
 	  return(
-            <div className="bakemenu">
-		  {this.alertNewOrder()}
+		  <div className="bakemenu">
+			  {this.alertNewOrder()}
 	      <p>BakeMenu</p>
 	      <p>Pending orders:  {this.state.bakeOrderInProgress}</p>
+	      <p>Unaknowledged orders: {unak.map(ulist=>(
+	      					<span>{ulist}, </span>
+	      				))}</p>
               <ul>
                 {bakeOrders.map(itemlist => (
-			<li key={itemlist.OrderNumber}>
+			<li key={itemlist.OrderNumber} 
+			    onClick={() => this.viewOrder(itemlist.OrderNumber)}>
 			<ul>	
 				<div>
 					<span>
 						#{itemlist.OrderNumber}
 						@{this.getDate(itemlist.OrderNumber)}
+						&nbsp;&nbsp;{itemlist.type}
 					</span>
 					<span className="float-right">
 						{itemlist.OrderList[0].OrderStatus}

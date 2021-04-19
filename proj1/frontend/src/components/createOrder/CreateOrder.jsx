@@ -66,7 +66,8 @@ class CreateOrder extends Component {
 			axios.post(baseBackendURL + '/v1/order', {
 				"dish_id": parseInt(orderItems[i][1]),
 				"order_number": orderNumber,
-				"quantity": parseInt(orderItems[i][3]), 
+				"quantity": parseInt(orderItems[i][3]),
+				"status": "new_order",
 			}))
 		}
 		await axios
@@ -74,7 +75,7 @@ class CreateOrder extends Component {
 		  .then(
 			axios.spread((...response) => {
 			console.log(response)
-		  	sendMsg("update_bakemenu_new");
+		  	sendMsg(JSON.stringify({msg:"update_bakemenu_new",orderNumber:orderNumber}));
 		  }))
 		console.log("Done");
 		//ADD MODEL for "ORDER PLACED proceed to :NEW ORDER or VIEW ORDER"
