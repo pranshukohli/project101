@@ -325,7 +325,8 @@ func (a *App) ListHandler(
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		var orders_list [][]*OrderStatus
 		var onl []*OrderByNumber
-		order_status := "in_progress"
+		//order_status_2 := "in_progress"
+		order_status := "new_order"
 		order_numbers, err := a.DB.Table(
 					"orders",
 				).Select(
