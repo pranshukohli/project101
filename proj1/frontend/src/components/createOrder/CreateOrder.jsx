@@ -5,7 +5,7 @@ import "./CreateOrder.scss";
 import { Redirect } from 'react-router-dom';
 import empty_cart from '../../empty_cart.png';
 
-const baseBackendURL = "http://ec2-65-0-12-62.ap-south-1.compute.amazonaws.com:8080"
+const baseBackendURL="http://"+process.env.REACT_APP_BASE_BACKEND_URI+":"+process.env.REACT_APP_BASE_BACKEND_PORT;
 
 axios.defaults.headers.post['Content-Type'] ='application/json;charset=utf-8';
 axios.defaults.headers.post['Access-Control-Allow-Origin'] = '*';

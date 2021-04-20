@@ -2,8 +2,7 @@ import React, { Component } from "react";
 import axios from 'axios';
 import { sendMsg } from "../../api";
 import "./BakeMenu.scss";
-const baseBackendURL = "http://ec2-65-0-12-62.ap-south-1.compute.amazonaws.com:8080"
-
+const baseBackendURL="http://"+process.env.REACT_APP_BASE_BACKEND_URI+":"+process.env.REACT_APP_BASE_BACKEND_PORT; 
 class BakeMenu extends Component {
 	constructor(props) { 
 	  super(props); 
@@ -130,6 +129,7 @@ class BakeMenu extends Component {
 		  <div className="bakemenu">
 			  {this.alertNewOrder()}
 	      <p>BakeMenu</p>
+		  <p>{process.env.REACT_APP_BASE_BACKEND_URL}</p>
 	      <p>Pending orders:  {this.state.bakeOrderInProgress}</p>
 	      <p>Unaknowledged orders: {unak.map(ulist=>(
 	      					<span>{ulist}, </span>
