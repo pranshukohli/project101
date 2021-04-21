@@ -3,6 +3,9 @@ import axios from 'axios';
 import { sendMsg } from "../../api";
 import "./BakeMenu.scss";
 const baseBackendURL="http://"+process.env.REACT_APP_BASE_BACKEND_URI+":"+process.env.REACT_APP_BASE_BACKEND_PORT; 
+
+console.log("Backend Server IP:" + baseBackendURL);
+
 class BakeMenu extends Component {
 	constructor(props) { 
 	  super(props); 
@@ -41,7 +44,7 @@ class BakeMenu extends Component {
 	    .then(
 	    (repos) => {
 		    if(msg == "update_bakemenu_new"){
-		    	repos.data[0].type="recent new [Aknowledge]"
+		    	repos.data[0].type="<span class='badge badge-secondary'>New</span>"
 			var _unak = this.state.unak
 			_unak.push(orderNumber)
 			    this.setState({
@@ -126,8 +129,10 @@ class BakeMenu extends Component {
           } else {
 
 	  return(
+
 		  <div className="bakemenu">
-			  {this.alertNewOrder()}
+		
+		  {this.alertNewOrder()}
 	      <p>BakeMenu</p>
 		  <p>{process.env.REACT_APP_BASE_BACKEND_URL}</p>
 	      <p>Pending orders:  {this.state.bakeOrderInProgress}</p>
@@ -143,7 +148,10 @@ class BakeMenu extends Component {
 					<span>
 						#{itemlist.OrderNumber}
 						@{this.getDate(itemlist.OrderNumber)}
-						&nbsp;&nbsp;{itemlist.type}
+						&nbsp;&nbsp;
+						<span dangerouslySetInnerHTML={
+							{__html:itemlist.type}
+						}></span>
 					</span>
 					<span className="float-right">
 						{itemlist.OrderList[0].OrderStatus}
